@@ -752,6 +752,10 @@ function fetchSeries(){
   return fetch(url).then(r=>{ if(!r.ok) throw new Error('NET'); return r.text(); }).then(text=>{
     const rows=parseCSV(text);
     const numv=(s)=>{ if(s==null) return null; const n=Number(String(s).replace(/,/g,'').trim()); return isFinite(n)?n:null; };
+    // YOR cells may be exported as "125.3%" (percent) or "1.253" (decimal). Handle both.
+    const yorv=(s)=>{ if(s==null) return null; s=String(s).trim(); if(!s) return null;
+      const pct=s.includes('%'); const n=Number(s.replace(/[%,]/g,'').trim());
+      if(!isFinite(n)) return null; return pct ? n/100 : n; };
     const series=[];
     rows.forEach(c=>{
       const remark=(c[1]||'').toLowerCase().trim();
@@ -759,8 +763,8 @@ function fetchSeries(){
       const eStk=numv(c[10]); if(eStk==null) return;
       series.push({
         dateRaw:(c[0]||'').trim(), remark,
-        eStk, eYor:numv(c[11]), eIn:numv(c[7]), eOut:numv(c[8]),
-        lStk:numv(c[14]), lYor:numv(c[15]), lIn:numv(c[12]), lOut:numv(c[13])
+        eStk, eYor:yorv(c[11]), eIn:numv(c[7]), eOut:numv(c[8]),
+        lStk:numv(c[14]), lYor:yorv(c[15]), lIn:numv(c[12]), lOut:numv(c[13])
       });
     });
     if(!series.length) throw new Error('EMPTY');
@@ -797,6 +801,12 @@ async function loadDashboard(){
 
 function renderDashboard(series){
   const t=num('target')/100||0.8;
+  const eCapF=num('eCap')||12980, lCapF=num('lCap')||1300;
+  // If the sheet's YOR column is missing, derive it from stock ÷ capacity.
+  series.forEach(r=>{
+    if(r.eYor==null && r.eStk!=null) r.eYor=r.eStk/eCapF;
+    if(r.lYor==null && r.lStk!=null) r.lYor=r.lStk/lCapF;
+  });
   // latest actual = baseline (H+0)
   let baseIdx=-1;
   for(let i=0;i<series.length;i++){ if(series[i].remark==='actual') baseIdx=i; }
