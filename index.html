@@ -347,53 +347,54 @@ function compute(){
 }
 
 // ─── IDEAL RECOMMENDATION OPTIMIZER ──────────────────────────
-const SHEET_ID='1VgyCWMtSnNknlL4SgE9Q5DvGj7cR7IBQNnUkL3kZCQU';
-const YOR_TAB='YOR Daily';
+// Published-to-web YOR Daily tab (File ▸ Share ▸ Publish to web)
+const PUB_ID='2PACX-1vTXSizOmXVj-4S5tWz0pgihbSszoi8Aff-1EmYDrWgJXFKjiVoml2hjuDj0rtJfjEQFjeDYINHhONeO';
+const GID='46241366';
 
-function parseYorRows(json){
-  if(json && json.status==='error'){
-    const reason=(json.errors&&json.errors[0]&&(json.errors[0].reason||json.errors[0].detailed_message))||'';
-    if(/access|auth|permission|denied/i.test(reason)) throw new Error('NOT_PUBLIC');
-    throw new Error('SHEET_ERR');
-  }
-  const rows=(json && json.table && json.table.rows)||[];
-  if(!rows.length) throw new Error('EMPTY');
-  const val=(c)=>c&&c.v!=null?Number(c.v):null;
-  let lastActual=null, fcEmptyIn=[], fcLadenIn=[];
-  rows.forEach(r=>{
-    const c=r.c||[];
-    const remark=(c[1]&&c[1].v)?String(c[1].v).toLowerCase():'';
-    const eStk=val(c[10]), lStk=val(c[14]);
-    if(remark.includes('actual') && eStk!=null) lastActual={eStk,lStk};
-    if(remark.includes('forecast')){
-      if(val(c[7])!=null) fcEmptyIn.push(val(c[7]));
-      if(val(c[12])!=null) fcLadenIn.push(val(c[12]));
+// Robust CSV parser (handles quoted fields with embedded commas/quotes).
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+      else cur+=ch;
+    }else{
+      if(ch==='"') q=true;
+      else if(ch===',') { row.push(cur); cur=''; }
+      else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if(ch!=='\r') cur+=ch;
     }
-  });
-  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
-  return {lastActual, fcEmptyInbound:avg(fcEmptyIn), fcLadenInbound:avg(fcLadenIn)};
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows;
 }
 
-// JSONP loader — bypasses CORS by loading via <script> instead of fetch().
-// Works for any sheet shared as "Anyone with the link can view".
-// Columns in YOR Daily (range A6:P, headers=0):
-// 0 Date · 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
-// 12 Laden in · 13 Laden out · 14 Laden stock
+// Reads the published-to-web CSV of YOR Daily. The /pub?output=csv endpoint
+// serves with permissive CORS, so a normal fetch works from GitHub Pages.
+// Columns: 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
+//          12 Laden in · 13 Laden out · 14 Laden stock
 function fetchSheet(){
-  return new Promise((resolve,reject)=>{
-    const cb='__gviz_'+Math.random().toString(36).slice(2);
-    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`
-      +`?tqx=responseHandler:${cb}&sheet=${encodeURIComponent(YOR_TAB)}&range=A6:P200&headers=0`;
-    const script=document.createElement('script');
-    let done=false;
-    const cleanup=()=>{ try{delete window[cb];}catch(_){window[cb]=void 0;} if(script.parentNode)script.parentNode.removeChild(script); };
-    const timer=setTimeout(()=>{ if(done)return; done=true; cleanup(); reject(new Error('NET')); },12000);
-    window[cb]=(json)=>{ if(done)return; done=true; clearTimeout(timer); cleanup();
-      try{ resolve(parseYorRows(json)); }catch(err){ reject(err); } };
-    script.onerror=()=>{ if(done)return; done=true; clearTimeout(timer); cleanup(); reject(new Error('NOT_PUBLIC')); };
-    script.src=url;
-    document.head.appendChild(script);
-  });
+  const url=`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GID}&single=true&output=csv`;
+  return fetch(url).then(r=>{ if(!r.ok) throw new Error('NET'); return r.text(); }).then(text=>{
+    const rows=parseCSV(text);
+    if(!rows.length) throw new Error('EMPTY');
+    const numv=(s)=>{ if(s==null) return null; const n=Number(String(s).replace(/,/g,'').trim()); return isFinite(n)?n:null; };
+    let lastActual=null, fcEmptyIn=[], fcLadenIn=[];
+    rows.forEach(c=>{
+      const remark=(c[1]||'').toLowerCase().trim();
+      if(remark==='actual'){
+        const eStk=numv(c[10]); if(eStk!=null) lastActual={eStk, lStk:numv(c[14])};
+      }else if(remark==='forecast'){
+        const ei=numv(c[7]), li=numv(c[12]);
+        if(ei!=null) fcEmptyIn.push(ei);
+        if(li!=null) fcLadenIn.push(li);
+      }
+    });
+    if(!lastActual && !fcEmptyIn.length) throw new Error('EMPTY');
+    const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+    return {lastActual, fcEmptyInbound:avg(fcEmptyIn), fcLadenInbound:avg(fcLadenIn)};
+  }).catch(err=>{ throw (err.message==='EMPTY')?err:new Error('NET'); });
 }
 
 // Effective weekday-equivalent drain days over a horizon (weekends count as wf).
@@ -493,11 +494,8 @@ async function generateIdeal(){
   }else{
     status.className='opt-status err';
     const msg={
-      'NOT_PUBLIC':'The sheet isn\'t readable by outside requests. If you\'re on Google Workspace, "anyone with link" may be limited to your organisation — remove the domain restriction, or use File ▸ Share ▸ Publish to web.',
-      'EMPTY':'Connected, but found no rows in YOR Daily A6:P200 — check the tab is named exactly "YOR Daily".',
-      'SHEET_ERR':'The sheet returned an error — check the tab name is exactly "YOR Daily".',
-      'NET':'Request timed out — check your connection and that the link is public.'
-    }[errCode] || 'Couldn\'t reach the sheet. Make sure it\'s shared as "Anyone with the link can view".';
+      'EMPTY':'Connected to the published sheet, but found no Actual/Forecast rows — check the YOR Daily tab is still the one published.'
+    }[errCode] || 'Couldn\'t reach the published sheet. Check it\'s still published (File ▸ Share ▸ Publish to web) and the link is active.';
     status.textContent='⚠ '+msg+' Optimised from current inputs instead.';
   }
 }
