@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBS — YOR BCP Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0A2342; --navy2:#1A3A5C; --red:#A32D2D; --gold:#D4AF37;
+    --green:#3B6D11; --green-bg:#EAF3DE; --amber:#854F0B; --amber-bg:#FAEEDA;
+    --red-bg:#FCEBEB; --line:#E2E6EB; --bg:#F4F6F9; --card:#FFFFFF;
+    --text:#1A2433; --muted:#6B7585;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.5;padding:0 0 60px;}
+  .topbar{background:var(--navy);color:#fff;padding:18px 24px;display:flex;
+    align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);}
+  .topbar h1{font-size:18px;font-weight:600;letter-spacing:.3px;}
+  .topbar .sub{font-size:12px;color:#A9BCD4;margin-top:2px;}
+  .topbar .stamp{font-size:12px;color:#A9BCD4;text-align:right;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px;}
+  .grid{display:grid;gap:16px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;margin-top:18px;}
+  .sec-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+  .sec-title .bar{width:4px;height:14px;background:var(--gold);border-radius:2px;}
+
+  .inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500;}
+  .field input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;
+    font-size:15px;font-weight:600;color:var(--text);background:#FCFCFD;transition:.15s;}
+  .field input:focus{outline:none;border-color:var(--navy2);background:#fff;
+    box-shadow:0 0 0 3px rgba(26,58,92,.08);}
+  .field.empty input{border-left:3px solid #378ADD;}
+  .field.laden input{border-left:3px solid #D85A30;}
+  .field.cfg input{border-left:3px solid var(--gold);}
+
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
+  .metric{background:var(--bg);border-radius:9px;padding:13px 15px;border:1px solid var(--line);}
+  .metric .ml{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500;}
+  .metric .mv{font-size:24px;font-weight:700;line-height:1.05;}
+  .metric .ms{font-size:11px;color:var(--muted);margin-top:3px;}
+  .mv.red{color:var(--red);} .mv.amber{color:var(--amber);} .mv.green{color:var(--green);}
+
+  .alerts{display:grid;gap:10px;}
+  .alert{border-radius:9px;padding:12px 16px;font-size:14px;border:1px solid;display:flex;gap:10px;align-items:flex-start;}
+  .alert .ico{font-size:16px;line-height:1.3;}
+  .alert.critical{background:var(--red-bg);border-color:#F0AAAA;color:#7A1F1F;}
+  .alert.warning{background:var(--amber-bg);border-color:#EAC97A;color:#5E3906;}
+  .alert.ok{background:var(--green-bg);border-color:#B9D98A;color:#2A4D0C;}
+  .alert b{font-weight:700;}
+
+  .chart-box{position:relative;height:300px;width:100%;}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12px;min-width:760px;}
+  thead th{background:var(--navy2);color:#fff;font-weight:600;padding:9px 8px;text-align:center;
+    font-size:10.5px;letter-spacing:.02em;border:1px solid var(--navy);white-space:nowrap;}
+  thead th:first-child,thead th:nth-child(2){text-align:left;}
+  tbody td{padding:7px 8px;text-align:center;border:1px solid var(--line);white-space:nowrap;}
+  tbody td:first-child{text-align:left;font-weight:700;color:var(--navy);}
+  tbody td:nth-child(2){text-align:left;color:var(--muted);}
+  tbody tr.today{background:#EBF5FB;}
+  tbody tr.today td:first-child{color:var(--navy);}
+  .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;}
+  .chip.red{background:var(--red-bg);color:var(--red);}
+  .chip.amber{background:var(--amber-bg);color:var(--amber);}
+  .chip.green{background:var(--green-bg);color:var(--green);}
+  .pos{color:var(--green);font-weight:600;} .neg{color:var(--red);font-weight:600;}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .btn{padding:9px 16px;border-radius:8px;border:1px solid var(--navy2);background:var(--navy);
+    color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+  .btn:hover{background:var(--navy2);}
+  .btn.ghost{background:#fff;color:var(--navy);}
+  .btn.ghost:hover{background:var(--bg);}
+
+  .daysrow{display:flex;align-items:center;gap:12px;margin-top:4px;}
+  .daysrow input[type=range]{flex:1;}
+  @media(max-width:600px){.topbar{flex-direction:column;gap:8px;align-items:flex-start;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>SBS — Yard Occupancy BCP Calculator</h1>
+    <div class="sub">Seacon Bintang Sejahtera · Container Yard Operations</div>
+  </div>
+  <div class="stamp" id="stamp"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- INPUT PARAMETERS -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>Input parameters</div>
+    <div class="inputs">
+      <div class="field empty"><label>Empty stock today (TEU)</label><input type="number" id="eStock" value="16268"></div>
+      <div class="field laden"><label>Laden stock today (TEU)</label><input type="number" id="lStock" value="1597"></div>
+      <div class="field cfg"><label>Empty capacity (TEU)</label><input type="number" id="eCap" value="12988"></div>
+      <div class="field cfg"><label>Laden capacity (TEU)</label><input type="number" id="lCap" value="1300"></div>
+      <div class="field cfg"><label>Target YOR (%)</label><input type="number" id="target" value="80" step="1"></div>
+      <div class="field empty"><label>Empty inbound (TEU/day)</label><input type="number" id="eIn" value="400"></div>
+      <div class="field empty"><label>Empty outbound (TEU/day)</label><input type="number" id="eOut" value="550"></div>
+      <div class="field laden"><label>Laden inbound (TEU/day)</label><input type="number" id="lIn" value="120"></div>
+      <div class="field laden"><label>Laden outbound (TEU/day)</label><input type="number" id="lOut" value="150"></div>
+    </div>
+    <div class="daysrow">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap;">Projection horizon</label>
+      <input type="range" id="days" min="7" max="60" value="14" step="1">
+      <span id="daysOut" style="font-weight:700;min-width:60px;">14 days</span>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>Current status</div>
+    <div class="metrics" id="metrics"></div>
+  </section>
+
+  <!-- ALERTS -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>Recommendation &amp; alerts</div>
+    <div class="alerts" id="alerts"></div>
+  </section>
+
+  <!-- CHART -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>YOR recovery projection</div>
+    <div class="legend">
+      <span><i style="background:#378ADD;"></i>Empty YOR</span>
+      <span><i style="background:#D85A30;"></i>Laden YOR</span>
+      <span><i style="background:#3B6D11;"></i>Target</span>
+    </div>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </section>
+
+  <!-- TABLE -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>Daily projection table (H+0 onward)</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Day</th><th>Date</th>
+          <th>Empty cap</th><th>Empty stock</th><th>Empty YOR%</th><th>Empty in</th><th>Empty out</th><th>Net (E)</th>
+          <th>Laden cap</th><th>Laden stock</th><th>Laden YOR%</th><th>Laden in</th><th>Laden out</th><th>Net (L)</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="toolbar">
+      <button class="btn" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn ghost" onclick="window.print()">🖨 Print / PDF</button>
+      <button class="btn ghost" onclick="resetDefaults()">↺ Reset</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eIn:400,eOut:550,lIn:120,lOut:150,days:14};
+let chart=null;
+
+function $(id){return document.getElementById(id);}
+function num(id){return parseFloat($(id).value)||0;}
+function fmt(n){return Math.round(n).toLocaleString();}
+function tier(yor,t){if(yor>=1)return'red';if(yor>=t)return'amber';return'green';}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function dShort(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function dFull(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+
+function compute(){
+  const eStock=num('eStock'),lStock=num('lStock'),eCap=num('eCap'),lCap=num('lCap');
+  const t=num('target')/100;
+  const eIn=num('eIn'),eOut=num('eOut'),lIn=num('lIn'),lOut=num('lOut');
+  const days=num('days');
+  $('daysOut').textContent=days+' days';
+
+  const eNet=eOut-eIn, lNet=lOut-lIn;           // positive = draining
+  const eYOR=eStock/eCap, lYOR=lStock/lCap;
+  const eTarget=Math.round(eCap*t), lTarget=Math.round(lCap*t);
+  const eExcess=Math.max(0,eStock-eTarget), lExcess=Math.max(0,lStock-lTarget);
+  const eDays=eNet>0?Math.ceil(eExcess/eNet):Infinity;
+  const lDays=lNet>0?Math.ceil(lExcess/lNet):Infinity;
+  const today=new Date();today.setHours(0,0,0,0);
+
+  // ---- METRICS ----
+  const eT=tier(eYOR,t), lT=tier(lYOR,t);
+  $('metrics').innerHTML=`
+    <div class="metric"><div class="ml">Empty YOR</div><div class="mv ${eT}">${(eYOR*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} TEU</div></div>
+    <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${(lYOR*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} TEU</div></div>
+    <div class="metric"><div class="ml">Empty net drain/day</div><div class="mv ${eNet>0?'green':'red'}">${eNet>0?'−':'+'}${fmt(Math.abs(eNet))}</div><div class="ms">out ${fmt(eOut)} − in ${fmt(eIn)}</div></div>
+    <div class="metric"><div class="ml">Laden net drain/day</div><div class="mv ${lNet>0?'green':'red'}">${lNet>0?'−':'+'}${fmt(Math.abs(lNet))}</div><div class="ms">out ${fmt(lOut)} − in ${fmt(lIn)}</div></div>
+    <div class="metric"><div class="ml">Empty → 80% target</div><div class="mv ${eDays===Infinity?'red':eDays>30?'amber':'green'}">${eDays===Infinity?'∞':eDays+'d'}</div><div class="ms">${eDays===Infinity?'not recovering':dFull(addDays(today,eDays))}</div></div>
+    <div class="metric"><div class="ml">Laden → 80% target</div><div class="mv ${lDays===Infinity?'red':lDays>30?'amber':'green'}">${lDays===Infinity?'∞':lDays+'d'}</div><div class="ms">${lDays===Infinity?'not recovering':dFull(addDays(today,lDays))}</div></div>
+  `;
+
+  // ---- ALERTS ----
+  const A=[];
+  if(eNet<=0)A.push({t:'critical',h:'Empty — stock keeps growing',b:`At ${fmt(eIn)} in / ${fmt(eOut)} out per day, empty yard will not drain. Increase outbound or cut inbound below ${fmt(eOut)} TEU/day.`});
+  else if(eDays>30)A.push({t:'warning',h:`Empty — slow recovery (${eDays} days)`,b:`Recovery to 80% by ${dFull(addDays(today,eDays))}. To speed up, raise outbound or reduce empty inbound.`});
+  else A.push({t:'ok',h:`Empty — on track (${eDays} days)`,b:`At ${fmt(eNet)} TEU/day net drain, recover to 80% by ${dFull(addDays(today,eDays))}.`});
+
+  if(lNet<=0)A.push({t:'critical',h:'Laden — stock keeps growing',b:`At ${fmt(lIn)} in / ${fmt(lOut)} out per day, laden yard will not drain. Reach-stacker outbound must exceed ${fmt(lIn)} TEU/day.`});
+  else if(lDays>30)A.push({t:'warning',h:`Laden — slow recovery (${lDays} days)`,b:`Recovery to 80% by ${dFull(addDays(today,lDays))}. Push prioritised laden outbound or limit bookings.`});
+  else A.push({t:'ok',h:`Laden — on track (${lDays} days)`,b:`At ${fmt(lNet)} TEU/day net drain, recover to 80% by ${dFull(addDays(today,lDays))}.`});
+
+  $('alerts').innerHTML=A.map(a=>`<div class="alert ${a.t}"><span class="ico">${a.t==='critical'?'🔴':a.t==='warning'?'🟡':'🟢'}</span><div><b>${a.h}</b><br>${a.b}</div></div>`).join('');
+
+  // ---- TABLE + chart data ----
+  const rows=[],cl=[],eY=[],lY=[];
+  let eS=eStock,lS=lStock;
+  for(let i=0;i<=days;i++){
+    const date=addDays(today,i);
+    const eyor=eS/eCap, lyor=lS/lCap;
+    rows.push({i,date,eCap,eS,eyor,eIn,eOut,eNet,lCap,lS,lyor,lIn,lOut,lNet});
+    cl.push(i%Math.ceil(days/12)===0?dShort(date):'');
+    eY.push(+(eyor*100).toFixed(1));
+    lY.push(+(lyor*100).toFixed(1));
+    eS=Math.max(0,eS-eNet);
+    lS=Math.max(0,lS-lNet);
+  }
+
+  $('tbody').innerHTML=rows.map(r=>`
+    <tr class="${r.i===0?'today':''}">
+      <td>H+${r.i}</td><td>${dShort(r.date)}</td>
+      <td>${fmt(r.eCap)}</td><td>${fmt(r.eS)}</td>
+      <td><span class="chip ${tier(r.eyor,t)}">${(r.eyor*100).toFixed(1)}%</span></td>
+      <td>${fmt(r.eIn)}</td><td>${fmt(r.eOut)}</td>
+      <td class="${r.eNet>0?'pos':'neg'}">${r.eNet>0?'−':'+'}${fmt(Math.abs(r.eNet))}</td>
+      <td>${fmt(r.lCap)}</td><td>${fmt(r.lS)}</td>
+      <td><span class="chip ${tier(r.lyor,t)}">${(r.lyor*100).toFixed(1)}%</span></td>
+      <td>${fmt(r.lIn)}</td><td>${fmt(r.lOut)}</td>
+      <td class="${r.lNet>0?'pos':'neg'}">${r.lNet>0?'−':'+'}${fmt(Math.abs(r.lNet))}</td>
+    </tr>`).join('');
+
+  // ---- CHART ----
+  const tgtLine=Array(days+1).fill(num('target'));
+  if(chart)chart.destroy();
+  chart=new Chart($('chart'),{
+    type:'line',
+    data:{labels:cl,datasets:[
+      {label:'Empty YOR %',data:eY,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25},
+      {label:'Laden YOR %',data:lY,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25,borderDash:[5,3]},
+      {label:'Target',data:tgtLine,borderColor:'#3B6D11',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(1)+'%'}}},
+      scales:{y:{ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.06)'}},x:{grid:{display:false}}}}
+  });
+
+  window._rows=rows;
+}
+
+function exportCSV(){
+  const r=window._rows||[];
+  const head=['Day','Date','Empty cap','Empty stock','Empty YOR%','Empty in','Empty out','Empty net','Laden cap','Laden stock','Laden YOR%','Laden in','Laden out','Laden net'];
+  const lines=[head.join(',')];
+  r.forEach(x=>lines.push([`H+${x.i}`,dFull(x.date),x.eCap,Math.round(x.eS),(x.eyor*100).toFixed(1),x.eIn,x.eOut,x.eNet,x.lCap,Math.round(x.lS),(x.lyor*100).toFixed(1),x.lIn,x.lOut,x.lNet].join(',')));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='SBS_YOR_BCP_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+}
+
+function resetDefaults(){for(const k in DEFAULTS)$(k).value=DEFAULTS[k];compute();}
+
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',compute));
+$('stamp').textContent='Generated '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+compute();
+</script>
+</body>
+</html>
