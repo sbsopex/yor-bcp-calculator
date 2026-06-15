@@ -123,6 +123,25 @@
   tbody tr.today.wknd td{background:#EBF5FB;}
   .we{font-size:9px;color:var(--muted);background:#EDEFF2;padding:1px 4px;border-radius:4px;margin-left:4px;}
   .rp{font-size:10px;color:#1E5C99;margin-left:3px;}
+
+  .tabs{background:#fff;border-bottom:1px solid var(--line);display:flex;gap:4px;padding:0 16px;
+    position:sticky;top:0;z-index:20;max-width:1180px;margin:0 auto;}
+  .tab{background:none;border:none;padding:14px 18px;font-size:13.5px;font-weight:600;color:var(--muted);
+    cursor:pointer;border-bottom:3px solid transparent;transition:.15s;font-family:inherit;}
+  .tab:hover{color:var(--navy);}
+  .tab.active{color:var(--navy);border-bottom-color:var(--gold);}
+
+  .dash-sync{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .sync-right{display:flex;align-items:center;gap:10px;}
+  .sync-info{font-size:12px;color:var(--muted);}
+  .sync-info.ok{color:var(--green);} .sync-info.err{color:var(--red);}
+  .dash-empty{color:var(--muted);font-size:13px;padding:8px 0;}
+  .dash-note{font-size:12.5px;color:var(--text);background:var(--bg);border-radius:8px;
+    padding:11px 14px;margin-top:12px;line-height:1.5;}
+  .badge-type{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;}
+  .badge-type.act{background:#E6EEF7;color:var(--navy);}
+  .badge-type.fc{background:#F1ECDA;color:#9A7B12;}
+  .metric .mv.big{font-size:26px;}
   .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;}
   .chip.red{background:var(--red-bg);color:var(--red);}
   .chip.amber{background:var(--amber-bg);color:var(--amber);}
@@ -145,13 +164,19 @@
 
 <div class="topbar">
   <div>
-    <h1>SBS — Yard Occupancy BCP Calculator</h1>
+    <h1>SBS — Yard Occupancy Suite</h1>
     <div class="sub">Seacon Bintang Sejahtera · Container Yard Operations</div>
   </div>
   <div class="stamp" id="stamp"></div>
 </div>
 
+<nav class="tabs">
+  <button class="tab active" data-page="sim" onclick="switchPage('sim')">📊 YOR Simulation</button>
+  <button class="tab" data-page="dash" onclick="switchPage('dash')">📡 Daily YOR Dashboard</button>
+</nav>
+
 <div class="wrap">
+ <div id="page-sim">
 
   <!-- INPUT PARAMETERS -->
   <section>
@@ -239,6 +264,58 @@
     </div>
   </section>
 
+ </div><!-- /page-sim -->
+
+ <div id="page-dash" hidden>
+
+  <section>
+    <div class="dash-sync">
+      <div><span class="sec-title" style="margin:0"><span class="bar"></span>Live daily outlook — next 14 days</span></div>
+      <div class="sync-right"><span id="syncInfo" class="sync-info">Loading from YOR Daily…</span>
+        <button class="btn ghost" id="refreshBtn" onclick="loadDashboard()">↻ Refresh</button></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="bar"></span>Current status (latest actual)</div>
+    <div class="metrics" id="dashStatus"><div class="dash-empty">Connecting to the published sheet…</div></div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="bar"></span>14-day outlook</div>
+    <div class="metrics" id="dashOutlook"></div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="bar"></span>Forecast YOR trajectory (sheet forecast)</div>
+    <div class="legend">
+      <span><i style="background:#378ADD;"></i>Empty YOR</span>
+      <span><i style="background:#D85A30;"></i>Laden YOR</span>
+      <span><i style="background:#3B6D11;"></i>Target</span>
+      <span><i style="background:#B0B6BF;"></i>Actual / Forecast split</span>
+    </div>
+    <div class="chart-box"><canvas id="dashChart"></canvas></div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="bar"></span>H+0 → H+14 detail (from YOR Daily)</div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>Day</th><th>Date</th><th>Type</th>
+          <th>Empty stock</th><th>Empty YOR%</th><th>Empty in</th><th>Empty out</th>
+          <th>Laden stock</th><th>Laden YOR%</th><th>Laden in</th><th>Laden out</th>
+        </tr></thead>
+        <tbody id="dashBody"></tbody>
+      </table>
+    </div>
+    <div class="dash-note" id="dashNote"></div>
+    <div class="toolbar">
+      <button class="btn ghost" onclick="window.print()">🖨 Print / PDF</button>
+    </div>
+  </section>
+
+ </div><!-- /page-dash -->
 </div>
 
 <script>
@@ -657,7 +734,138 @@ function exportCSV(){
 
 function resetDefaults(){for(const k in DEFAULTS)$(k).value=DEFAULTS[k];compute();}
 
-document.querySelectorAll('input').forEach(el=>el.addEventListener('input',compute));
+// ─── PAGE NAVIGATION ─────────────────────────────────────────
+let dashLoaded=false, dashChart=null;
+function switchPage(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.page===name));
+  $('page-sim').hidden = name!=='sim';
+  $('page-dash').hidden = name!=='dash';
+  if(name==='dash' && !dashLoaded){ loadDashboard(); }
+  window.scrollTo(0,0);
+}
+
+// ─── DAILY DASHBOARD ─────────────────────────────────────────
+// Reads the full Actual+Forecast series from the published YOR Daily CSV.
+// Uses the sheet's own YOR columns (L=empty index 11, P=laden index 15).
+function fetchSeries(){
+  const url=`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GID}&single=true&output=csv`;
+  return fetch(url).then(r=>{ if(!r.ok) throw new Error('NET'); return r.text(); }).then(text=>{
+    const rows=parseCSV(text);
+    const numv=(s)=>{ if(s==null) return null; const n=Number(String(s).replace(/,/g,'').trim()); return isFinite(n)?n:null; };
+    const series=[];
+    rows.forEach(c=>{
+      const remark=(c[1]||'').toLowerCase().trim();
+      if(remark!=='actual' && remark!=='forecast') return;
+      const eStk=numv(c[10]); if(eStk==null) return;
+      series.push({
+        dateRaw:(c[0]||'').trim(), remark,
+        eStk, eYor:numv(c[11]), eIn:numv(c[7]), eOut:numv(c[8]),
+        lStk:numv(c[14]), lYor:numv(c[15]), lIn:numv(c[12]), lOut:numv(c[13])
+      });
+    });
+    if(!series.length) throw new Error('EMPTY');
+    return series;
+  }).catch(err=>{ throw (err.message==='EMPTY')?err:new Error('NET'); });
+}
+
+function fmtDate(raw){
+  // Try to parse common formats; fall back to raw string.
+  const d=new Date(raw);
+  if(!isNaN(d.getTime())) return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  return raw;
+}
+function yorPct(v){ return v==null?'—':(v*100).toFixed(1)+'%'; }
+function yorTier(v,t){ if(v==null) return ''; if(v>=1) return 'red'; if(v>=t) return 'amber'; return 'green'; }
+
+async function loadDashboard(){
+  const info=$('syncInfo'), btn=$('refreshBtn');
+  info.className='sync-info'; info.textContent='Loading from YOR Daily…';
+  btn.disabled=true;
+  try{
+    const series=await fetchSeries();
+    renderDashboard(series);
+    dashLoaded=true;
+    info.className='sync-info ok';
+    info.textContent='✓ Live · synced '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    info.className='sync-info err';
+    info.textContent='⚠ Couldn\'t load the published sheet — check it\'s still published to web.';
+    $('dashStatus').innerHTML='<div class="dash-empty">No data. Confirm File ▸ Share ▸ Publish to web is active for the YOR Daily tab.</div>';
+  }
+  btn.disabled=false;
+}
+
+function renderDashboard(series){
+  const t=num('target')/100||0.8;
+  // latest actual = baseline (H+0)
+  let baseIdx=-1;
+  for(let i=0;i<series.length;i++){ if(series[i].remark==='actual') baseIdx=i; }
+  if(baseIdx<0) baseIdx=0;
+  const window14=series.slice(baseIdx, baseIdx+15); // H+0..H+14
+  const base=series[baseIdx];
+
+  // ---- Current status ----
+  const combined=(base.eStk+base.lStk)/((base.eYor?base.eStk/base.eYor:12980)+(base.lYor?base.lStk/base.lYor:1300));
+  const stat=(label,v)=>{ const tr=yorTier(v,t); return `<div class="metric"><div class="ml">${label}</div><div class="mv big ${tr}">${yorPct(v)}</div><div class="ms">${tr==='red'?'Critical · over capacity':tr==='amber'?'Warning · above target':'Normal'}</div></div>`; };
+  $('dashStatus').innerHTML =
+    stat('Empty YOR', base.eYor) +
+    stat('Laden YOR', base.lYor) +
+    `<div class="metric"><div class="ml">Baseline date</div><div class="mv">${fmtDate(base.dateRaw)}</div><div class="ms">latest actual reading</div></div>`;
+
+  // ---- 14-day outlook ----
+  const fcRows=window14.filter(r=>r.remark==='forecast');
+  let peakE=base.eYor||0, peakEdate=base.dateRaw;
+  window14.forEach(r=>{ if(r.eYor!=null && r.eYor>peakE){ peakE=r.eYor; peakEdate=r.dateRaw; } });
+  const endRow=window14[window14.length-1]||base;
+  // when does empty forecast fall below target within window?
+  let backRow=window14.find(r=>r.eYor!=null && r.eYor<t);
+  const verdict = backRow ? ('Returns to target ~'+fmtDate(backRow.dateRaw)) : 'Stays above target through H+14';
+  const out=(label,val,sub,cls)=>`<div class="metric"><div class="ml">${label}</div><div class="mv ${cls||''}">${val}</div><div class="ms">${sub}</div></div>`;
+  $('dashOutlook').innerHTML =
+    out('Peak empty YOR', yorPct(peakE), 'on '+fmtDate(peakEdate), yorTier(peakE,t)) +
+    out('Empty YOR at H+14', yorPct(endRow.eYor), fmtDate(endRow.dateRaw), yorTier(endRow.eYor,t)) +
+    out('Laden YOR at H+14', yorPct(endRow.lYor), fmtDate(endRow.dateRaw), yorTier(endRow.lYor,t)) +
+    out('Empty outlook', backRow?'Improving':'Persistent', verdict, backRow?'green':'red');
+
+  // ---- Chart ----
+  const labels=window14.map(r=>fmtDate(r.dateRaw));
+  const eY=window14.map(r=>r.eYor!=null?+(r.eYor*100).toFixed(1):null);
+  const lY=window14.map(r=>r.lYor!=null?+(r.lYor*100).toFixed(1):null);
+  const splitIdx=window14.findIndex(r=>r.remark==='forecast');
+  if(dashChart)dashChart.destroy();
+  dashChart=new Chart($('dashChart'),{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Empty YOR %',data:eY,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25},
+      {label:'Laden YOR %',data:lY,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.07)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25,borderDash:[5,3]},
+      {label:'Target',data:labels.map(()=>num('target')||80),borderColor:'#3B6D11',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
+        title:(items)=>{ const i=items[0].dataIndex; return labels[i]+' · '+(window14[i].remark==='actual'?'Actual':'Forecast'); },
+        label:c=>c.dataset.label+': '+(c.parsed.y!=null?c.parsed.y.toFixed(1)+'%':'—')}}},
+      scales:{y:{ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.06)'}},
+        x:{grid:{display:false},
+           ticks:{callback:function(val,idx){ return (splitIdx>=0&&idx===splitIdx)?'▼ '+labels[idx]:labels[idx]; }}}}}
+  });
+
+  // ---- Table ----
+  $('dashBody').innerHTML=window14.map((r,i)=>`
+    <tr class="${i===0?'today':''}">
+      <td>H+${i}</td><td>${fmtDate(r.dateRaw)}</td>
+      <td><span class="badge-type ${r.remark==='actual'?'act':'fc'}">${r.remark==='actual'?'Actual':'Forecast'}</span></td>
+      <td>${r.eStk!=null?fmt(r.eStk):'—'}</td>
+      <td>${r.eYor!=null?`<span class="chip ${yorTier(r.eYor,t)}">${yorPct(r.eYor)}</span>`:'—'}</td>
+      <td>${r.eIn!=null?fmt(r.eIn):'—'}</td><td>${r.eOut!=null?fmt(r.eOut):'—'}</td>
+      <td>${r.lStk!=null?fmt(r.lStk):'—'}</td>
+      <td>${r.lYor!=null?`<span class="chip ${yorTier(r.lYor,t)}">${yorPct(r.lYor)}</span>`:'—'}</td>
+      <td>${r.lIn!=null?fmt(r.lIn):'—'}</td><td>${r.lOut!=null?fmt(r.lOut):'—'}</td>
+    </tr>`).join('');
+
+  $('dashNote').innerHTML=`This is the yard's <b>own forecast</b> straight from YOR Daily (▼ marks where actuals end and forecast begins) — what's projected to happen on the current trajectory. To model a <b>recovery plan</b> instead, use the <b>YOR Simulation</b> tab and run the ideal recommendation.`;
+}
+
+document.querySelectorAll('#page-sim input').forEach(el=>el.addEventListener('input',compute));
 $('stamp').textContent='Generated '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 compute();
 </script>
