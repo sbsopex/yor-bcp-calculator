@@ -44,6 +44,31 @@
     font-size:14px;font-weight:700;color:var(--text);background:#fff;text-align:right;transition:.15s;}
   .irow input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(26,58,92,.08);}
 
+  .opt-row{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap;}
+  .btn-opt{padding:11px 20px;border-radius:9px;border:none;cursor:pointer;
+    background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;
+    font-size:14px;font-weight:700;letter-spacing:.2px;transition:.15s;
+    box-shadow:0 2px 6px rgba(10,35,66,.25);white-space:nowrap;}
+  .btn-opt:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(10,35,66,.3);}
+  .btn-opt:active{transform:translateY(0);}
+  .btn-opt:disabled{opacity:.6;cursor:wait;transform:none;}
+  .opt-status{font-size:12px;color:var(--muted);flex:1;min-width:200px;}
+  .opt-status.err{color:var(--red);} .opt-status.ok{color:var(--green);}
+
+  .ideal-banner{margin-top:14px;border:1px solid var(--gold);border-radius:10px;overflow:hidden;}
+  .ideal-banner .ihead{background:linear-gradient(90deg,#FBF6E6,#FDFBF2);padding:10px 16px;
+    font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9A7B12;
+    border-bottom:1px solid var(--gold);display:flex;align-items:center;gap:8px;}
+  .ideal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
+  .ideal-cell{background:#fff;padding:14px 16px;}
+  .ideal-cell h4{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+  .ideal-cell.e h4{color:#1E5C99;} .ideal-cell.l h4{color:#B0481F;}
+  .ideal-cell .recline{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+  .ideal-cell .recline span:first-child{color:var(--muted);}
+  .ideal-cell .recline b{font-weight:700;}
+  .ideal-note{padding:11px 16px;font-size:12.5px;color:var(--text);background:#FCFBF6;line-height:1.55;}
+  @media(max-width:560px){.ideal-grid{grid-template-columns:1fr;}}
+
   .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
   .metric{background:var(--bg);border-radius:9px;padding:13px 15px;border:1px solid var(--line);}
   .metric .ml{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500;}
@@ -118,6 +143,8 @@
         <div class="irow"><label>Empty capacity (TEU)</label><input type="number" id="eCap" value="12988"></div>
         <div class="irow"><label>Laden capacity (TEU)</label><input type="number" id="lCap" value="1300"></div>
         <div class="irow"><label>Target YOR (%)</label><input type="number" id="target" value="80" step="1"></div>
+        <div class="irow"><label>Empty max outbound/day</label><input type="number" id="eMaxOut" value="900"></div>
+        <div class="irow"><label>Laden max outbound/day</label><input type="number" id="lMaxOut" value="270"></div>
       </div>
       <div class="igroup empty">
         <div class="igroup-head"><span class="dot"></span>Empty flow (side loader)</div>
@@ -131,10 +158,15 @@
       </div>
     </div>
     <div class="daysrow">
-      <label style="font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap;">Projection horizon</label>
+      <label style="font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap;">Recovery horizon</label>
       <input type="range" id="days" min="7" max="60" value="14" step="1">
       <span id="daysOut" style="font-weight:700;min-width:60px;">14 days</span>
     </div>
+    <div class="opt-row">
+      <button class="btn-opt" id="optBtn" onclick="generateIdeal()">🎯 Generate ideal recommendation</button>
+      <span class="opt-status" id="optStatus">Pulls latest actual stock &amp; forecast demand from YOR Daily, then solves for the best inbound/outbound split.</span>
+    </div>
+    <div id="idealOut"></div>
   </section>
 
   <!-- SUMMARY -->
@@ -275,6 +307,131 @@ function compute(){
   });
 
   window._rows=rows;
+}
+
+// ─── IDEAL RECOMMENDATION OPTIMIZER ──────────────────────────
+const SHEET_ID='1VgyCWMtSnNknlL4SgE9Q5DvGj7cR7IBQNnUkL3kZCQU';
+const YOR_TAB='YOR Daily';
+
+async function fetchSheet(){
+  // Columns in YOR Daily (range A6:P, headers=0):
+  // 0 Date · 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
+  // 12 Laden in · 13 Laden out · 14 Laden stock
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(YOR_TAB)}&range=A6:P200&headers=0`;
+  const res=await fetch(url);
+  const txt=await res.text();
+  const json=JSON.parse(txt.match(/setResponse\(([\s\S]*)\);?$/)[1]);
+  const rows=json.table.rows||[];
+  const val=(c)=>c&&c.v!=null?Number(c.v):null;
+
+  let lastActual=null, fcEmptyIn=[], fcLadenIn=[];
+  rows.forEach(r=>{
+    const c=r.c||[];
+    const remark=(c[1]&&c[1].v)?String(c[1].v).toLowerCase():'';
+    const eStk=val(c[10]), lStk=val(c[14]);
+    if(remark.includes('actual') && eStk!=null) lastActual={eStk,lStk};
+    if(remark.includes('forecast')){
+      if(val(c[7])!=null) fcEmptyIn.push(val(c[7]));
+      if(val(c[12])!=null) fcLadenIn.push(val(c[12]));
+    }
+  });
+  const avg=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):null;
+  return {lastActual, fcEmptyInbound:avg(fcEmptyIn), fcLadenInbound:avg(fcLadenIn)};
+}
+
+// Solve ideal inbound/outbound for one container type
+function solve(stock, cap, target, maxOut, forecastIn, horizon){
+  const tgtStock=cap*target;
+  const excess=Math.max(0, stock-tgtStock);
+  if(excess===0) return {inbound:Math.round(forecastIn||maxOut*0.5), outbound:Math.round((forecastIn||0)), net:0, days:0, atTarget:true};
+  const neededNet=excess/horizon;                  // drain/day to hit target by horizon
+  let inbound, outbound, achievableDays;
+  if((forecastIn!=null) && (forecastIn+neededNet<=maxOut)){
+    // can accept full forecast demand and still recover on time
+    inbound=forecastIn;
+    outbound=Math.min(maxOut, forecastIn+neededNet);
+  } else {
+    // must run outbound at max; accept the most inbound that still recovers in horizon
+    outbound=maxOut;
+    inbound=Math.max(0, maxOut-neededNet);
+    if(forecastIn!=null) inbound=Math.min(inbound, forecastIn);
+  }
+  const net=outbound-inbound;
+  achievableDays=net>0?Math.ceil(excess/net):Infinity;
+  return {inbound:Math.round(inbound), outbound:Math.round(outbound), net:Math.round(net), days:achievableDays, atTarget:false};
+}
+
+async function generateIdeal(){
+  const btn=$('optBtn'), status=$('optStatus');
+  btn.disabled=true; btn.textContent='⏳ Calculating…';
+  status.className='opt-status'; status.textContent='Pulling latest data from YOR Daily…';
+
+  let fc={lastActual:null,fcEmptyInbound:null,fcLadenInbound:null}, source='current inputs';
+  try{
+    fc=await fetchSheet();
+    if(fc.lastActual){
+      $('eStock').value=Math.round(fc.lastActual.eStk);
+      if(fc.lastActual.lStk!=null) $('lStock').value=Math.round(fc.lastActual.lStk);
+      source='live YOR Daily data';
+    }
+  }catch(e){
+    status.className='opt-status err';
+  }
+
+  const horizon=num('days');
+  const eCap=num('eCap'), lCap=num('lCap'), t=num('target')/100;
+  const eMaxOut=num('eMaxOut'), lMaxOut=num('lMaxOut');
+  const eStock=num('eStock'), lStock=num('lStock');
+
+  const e=solve(eStock, eCap, t, eMaxOut, fc.fcEmptyInbound, horizon);
+  const l=solve(lStock, lCap, t, lMaxOut, fc.fcLadenInbound, horizon);
+
+  // apply to inputs
+  $('eIn').value=e.inbound; $('eOut').value=e.outbound;
+  $('lIn').value=l.inbound; $('lOut').value=l.outbound;
+  compute();
+
+  const today=new Date();today.setHours(0,0,0,0);
+  const recDate=d=>d===Infinity?'beyond horizon':dFull(addDays(today,d));
+
+  $('idealOut').innerHTML=`
+    <div class="ideal-banner">
+      <div class="ihead">🎯 Ideal recommendation · target 80% YOR within ${horizon} days · source: ${source}</div>
+      <div class="ideal-grid">
+        <div class="ideal-cell e">
+          <h4>🔵 Empty (side loader)</h4>
+          <div class="recline"><span>Accept inbound</span><b>${fmt(e.inbound)} TEU/day</b></div>
+          <div class="recline"><span>Push outbound</span><b>${fmt(e.outbound)} TEU/day</b></div>
+          <div class="recline"><span>Net drain</span><b class="${e.net>0?'pos':'neg'}">${e.net>0?'−':'+'}${fmt(Math.abs(e.net))} TEU/day</b></div>
+          <div class="recline"><span>Recovery</span><b>${e.atTarget?'already at target':e.days+' days ('+recDate(e.days)+')'}</b></div>
+        </div>
+        <div class="ideal-cell l">
+          <h4>🟠 Laden (reach stacker)</h4>
+          <div class="recline"><span>Accept inbound</span><b>${fmt(l.inbound)} TEU/day</b></div>
+          <div class="recline"><span>Push outbound</span><b>${fmt(l.outbound)} TEU/day</b></div>
+          <div class="recline"><span>Net drain</span><b class="${l.net>0?'pos':'neg'}">${l.net>0?'−':'+'}${fmt(Math.abs(l.net))} TEU/day</b></div>
+          <div class="recline"><span>Recovery</span><b>${l.atTarget?'already at target':l.days+' days ('+recDate(l.days)+')'}</b></div>
+        </div>
+      </div>
+      <div class="ideal-note">${buildNote(e,l,fc,horizon)}</div>
+    </div>`;
+
+  btn.disabled=false; btn.textContent='🎯 Generate ideal recommendation';
+  status.className='opt-status ok';
+  status.textContent=source==='live YOR Daily data'
+    ? '✓ Synced with YOR Daily and optimised. Inputs above updated.'
+    : '⚠ Couldn\'t reach the sheet (check it\'s shared as "anyone with link can view"). Optimised from current inputs instead.';
+}
+
+function buildNote(e,l,fc,horizon){
+  const parts=[];
+  if(fc.fcEmptyInbound!=null) parts.push(`Forecast empty inbound demand ≈ <b>${fmt(fc.fcEmptyInbound)}</b> TEU/day.`);
+  if(e.inbound < (fc.fcEmptyInbound||Infinity))
+    parts.push(`Empty inbound must be capped <b>below forecast demand</b> — even at max outbound the yard can't absorb full volume within ${horizon} days.`);
+  else
+    parts.push(`Empty: full forecast inbound can be accepted while still recovering on time.`);
+  if(l.net<=0) parts.push(`<b>Laden warning:</b> at max reach-stacker outbound the laden yard still won't drain — review headcount.`);
+  return parts.join(' ');
 }
 
 function exportCSV(){
