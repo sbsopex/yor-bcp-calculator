@@ -91,11 +91,11 @@
   .dn{color:var(--green);font-weight:700;} .up{color:var(--red);font-weight:700;}
   .report-actions{margin-top:16px;}
 
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;}
-  .metric{background:var(--bg);border-radius:9px;padding:13px 15px;border:1px solid var(--line);}
-  .metric .ml{font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:500;}
-  .metric .mv{font-size:24px;font-weight:700;line-height:1.05;}
-  .metric .ms{font-size:11px;color:var(--muted);margin-top:3px;}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;}
+  .metric{background:var(--bg);border-radius:9px;padding:11px 13px;border:1px solid var(--line);}
+  .metric .ml{font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500;}
+  .metric .mv{font-size:21px;font-weight:700;line-height:1.05;}
+  .metric .ms{font-size:10.5px;color:var(--muted);margin-top:3px;}
   .mv.red{color:var(--red);} .mv.amber{color:var(--amber);} .mv.green{color:var(--green);}
 
   .alerts{display:grid;gap:10px;}
@@ -144,6 +144,16 @@
   .badge-type.act{background:#E6EEF7;color:var(--navy);}
   .badge-type.fc{background:#F1ECDA;color:#9A7B12;}
   .metric .mv.big{font-size:26px;}
+  .sec-hint{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0;text-transform:none;}
+  .mini-alert{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:10px 14px;border-radius:9px;
+    font-size:13px;border:1px solid;line-height:1.45;}
+  .mini-alert .ico{font-size:15px;line-height:1.3;flex-shrink:0;}
+  .mini-alert.critical{background:var(--red-bg);border-color:#F0AAAA;color:#7A1F1F;}
+  .mini-alert.warning{background:var(--amber-bg);border-color:#EAC97A;color:#5E3906;}
+  .mini-alert.ok{background:var(--green-bg);border-color:#B9D98A;color:#2A4D0C;}
+  .mini-alert b{font-weight:700;}
+  section{padding:15px 18px;margin-top:14px;}
+  .chart-box{height:240px;}
   .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;}
   .chip.red{background:var(--red-bg);color:var(--red);}
   .chip.amber{background:var(--amber-bg);color:var(--amber);}
@@ -211,11 +221,10 @@
         <div class="irow"><label>Outbound (TEU/day)</label><input type="number" id="lOut" value="150"></div>
       </div>
       <div class="igroup rev">
-        <div class="igroup-head"><span class="dot"></span>Revenue (IDR / TEU)</div>
-        <div class="irow"><label>Empty rev / TEU</label><input type="number" id="eRev" value="510704"></div>
-        <div class="irow"><label>Laden rev / TEU</label><input type="number" id="lRev" value="205907"></div>
-        <div class="irow"><label>Billed on</label><select id="revBasis" onchange="compute()"><option value="in">Inbound</option><option value="out">Outbound</option><option value="both">Throughput (in+out)</option></select></div>
-        <div class="hint">Rates = Mar–May avg (DEPO Empty ÷ Premium TEU, DEPO Full ÷ Tps TEU). Laden rate is volatile — adjust as needed.</div>
+        <div class="igroup-head"><span class="dot"></span>LOLO revenue (IDR / move)</div>
+        <div class="irow"><label>Empty LOLO / move</label><input type="number" id="eRev" value="500000"></div>
+        <div class="irow"><label>Laden LOLO / move</label><input type="number" id="lRev" value="115000"></div>
+        <div class="hint">LOLO is billed on <i>every</i> lift — each inbound and each outbound. One full in+out cycle ≈ Rp 1 jt for an empty. Revenue = (in + out) throughput × rate.</div>
       </div>
     </div>
     <div class="daysrow">
@@ -230,23 +239,11 @@
     <div id="idealOut"></div>
   </section>
 
-  <!-- SUMMARY -->
+  <!-- LIVE SNAPSHOT -->
   <section>
-    <div class="sec-title"><span class="bar"></span>Current status</div>
+    <div class="sec-title"><span class="bar"></span>Live snapshot <span class="sec-hint">— updates as you edit inputs</span></div>
     <div class="metrics" id="metrics"></div>
-  </section>
-
-  <!-- ALERTS -->
-  <section>
-    <div class="sec-title"><span class="bar"></span>Recommendation &amp; alerts</div>
-    <div class="alerts" id="alerts"></div>
-  </section>
-
-  <!-- REVENUE -->
-  <section>
-    <div class="sec-title"><span class="bar"></span>Revenue projection</div>
-    <div class="metrics" id="revMetrics"></div>
-    <div class="dash-note" id="revNote"></div>
+    <div class="mini-alert" id="priorityNote"></div>
   </section>
 
   <!-- CHART -->
@@ -262,13 +259,13 @@
 
   <!-- TABLE -->
   <section>
-    <div class="sec-title"><span class="bar"></span>Daily projection table (H+0 onward)</div>
+    <div class="sec-title"><span class="bar"></span>Daily projection (H+0 → H+14) <span class="sec-hint">— empty cap 12,988 · laden cap 1,300</span></div>
     <div class="table-scroll">
       <table>
         <thead><tr>
           <th>Day</th><th>Date</th>
-          <th>Empty cap</th><th>Empty stock</th><th>Empty YOR%</th><th>Empty in</th><th>Empty out</th><th>Net (E)</th>
-          <th>Laden cap</th><th>Laden stock</th><th>Laden YOR%</th><th>Laden in</th><th>Laden out</th><th>Net (L)</th>
+          <th>Empty stock</th><th>Empty YOR%</th><th>Empty in</th><th>Empty out</th><th>Net (E)</th>
+          <th>Laden stock</th><th>Laden YOR%</th><th>Laden in</th><th>Laden out</th><th>Net (L)</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
       </table>
@@ -335,7 +332,7 @@
 </div>
 
 <script>
-const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eMaxOut:900,lMaxOut:270,wf:0.5,eIn:400,eOut:550,eRepo:0,lIn:120,lOut:150,eRev:510704,lRev:205907,revBasis:'in',days:14};
+const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eMaxOut:900,lMaxOut:270,wf:0.5,eIn:400,eOut:550,eRepo:0,lIn:120,lOut:150,eRev:500000,lRev:115000,days:14};
 let chart=null;
 
 function $(id){return document.getElementById(id);}
@@ -385,32 +382,30 @@ function compute(){
   const eDays=simRecoveryDays(eStock,eTarget,eNet,wf,today);
   const lDays=simRecoveryDays(lStock,lTarget,lNet,wf,today);
 
-  // ---- METRICS ----
+  // ---- REVENUE (LOLO, throughput in+out) ----
+  const eRev=num('eRev'), lRev=num('lRev');
+  const eDayVol=eIn+eOut, lDayVol=lIn+lOut;            // moves billed/day (weekday)
+  const dayRev=eDayVol*eRev+lDayVol*lRev;
+
+  // ---- COMPACT SNAPSHOT (6 cards) ----
   const eT=tier(eYOR,t), lT=tier(lYOR,t);
-  const priority=eExcess>=lExcess?'Empty':'Laden';
+  const recCard=(lbl,dys)=>`<div class="metric"><div class="ml">${lbl}</div><div class="mv ${dys===Infinity?'red':dys>30?'amber':'green'}">${dys===Infinity?'∞':dys+'d'}</div><div class="ms">${dys===Infinity?'not recovering':dFull(addDays(today,dys))}</div></div>`;
   $('metrics').innerHTML=`
-    <div class="metric"><div class="ml">Empty YOR</div><div class="mv ${eT}">${(eYOR*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} TEU</div></div>
-    <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${(lYOR*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} TEU</div></div>
-    <div class="metric"><div class="ml">Empty overstock <b style="color:var(--navy)">▲ priority</b></div><div class="mv ${eExcess>0?'red':'green'}">${fmt(eExcess)}</div><div class="ms">TEU above ${Math.round(t*100)}% target</div></div>
-    <div class="metric"><div class="ml">Laden overstock</div><div class="mv ${lExcess>0?'amber':'green'}">${fmt(lExcess)}</div><div class="ms">TEU above ${Math.round(t*100)}% target</div></div>
-    <div class="metric"><div class="ml">Empty net drain/day</div><div class="mv ${eNet>0?'green':'red'}">${eNet>0?'−':'+'}${fmt(Math.abs(eNet))}</div><div class="ms">out ${fmt(eOut)}${eRepo>0?' + repo '+fmt(eRepo):''} − in ${fmt(eIn)}</div></div>
-    <div class="metric"><div class="ml">Laden net drain/day</div><div class="mv ${lNet>0?'green':'red'}">${lNet>0?'−':'+'}${fmt(Math.abs(lNet))}</div><div class="ms">out ${fmt(lOut)} − in ${fmt(lIn)}</div></div>
-    <div class="metric"><div class="ml">Empty → ${Math.round(t*100)}% target</div><div class="mv ${eDays===Infinity?'red':eDays>30?'amber':'green'}">${eDays===Infinity?'∞':eDays+'d'}</div><div class="ms">${eDays===Infinity?'not recovering':dFull(addDays(today,eDays))}</div></div>
-    <div class="metric"><div class="ml">Laden → ${Math.round(t*100)}% target</div><div class="mv ${lDays===Infinity?'red':lDays>30?'amber':'green'}">${lDays===Infinity?'∞':lDays+'d'}</div><div class="ms">${lDays===Infinity?'not recovering':dFull(addDays(today,lDays))}</div></div>
+    <div class="metric"><div class="ml">Empty YOR</div><div class="mv ${eT}">${(eYOR*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} · over by ${fmt(eExcess)}</div></div>
+    <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${(lYOR*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} · over by ${fmt(lExcess)}</div></div>
+    ${recCard('Empty → '+Math.round(t*100)+'% target',eDays)}
+    ${recCard('Laden → '+Math.round(t*100)+'% target',lDays)}
+    <div class="metric"><div class="ml">Revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(dayRev)}</div><div class="ms">LOLO on ${fmt(eDayVol+lDayVol)} moves</div></div>
+    <div class="metric"><div class="ml">Revenue / ${days} days</div><div class="mv" style="color:#2A7D4F" id="totRevCard">—</div><div class="ms">weekends at ${Math.round(wf*100)}%</div></div>
   `;
 
-  // ---- ALERTS ----
-  const A=[];
-  A.push({t:'warning',h:`Empty is the priority — ${fmt(eExcess)} TEU over target vs ${fmt(lExcess)} TEU laden`,b:`The overstock is overwhelmingly empties. Recovery depends on side-loader outbound <i>and</i> shipping-line evacuation / repositioning, which is partly outside yard control. Laden is comparatively minor.`});
-  if(eNet<=0)A.push({t:'critical',h:'Empty — stock keeps growing',b:`At ${fmt(eIn)} in vs ${fmt(eOut+eRepo)} out+repo per day, empty yard will not drain. Raise outbound/repositioning or cut inbound below ${fmt(eOut+eRepo)} TEU/day.`});
-  else if(eDays>30)A.push({t:'warning',h:`Empty — slow recovery (${eDays} days)`,b:`Recovery to ${Math.round(t*100)}% by ${dFull(addDays(today,eDays))} (weekends drain at ${Math.round(wf*100)}% rate). Speed up via more repositioning or lower inbound.`});
-  else A.push({t:'ok',h:`Empty — on track (${eDays} days)`,b:`At ${fmt(eNet)} TEU/day weekday drain, recover to ${Math.round(t*100)}% by ${dFull(addDays(today,eDays))}.`});
-
-  if(lNet<=0)A.push({t:'critical',h:'Laden — stock keeps growing',b:`At ${fmt(lIn)} in / ${fmt(lOut)} out per day, laden yard will not drain. Reach-stacker outbound must exceed ${fmt(lIn)} TEU/day.`});
-  else if(lDays>30)A.push({t:'warning',h:`Laden — slow recovery (${lDays} days)`,b:`Recovery to ${Math.round(t*100)}% by ${dFull(addDays(today,lDays))}. Push prioritised laden outbound or limit bookings.`});
-  else A.push({t:'ok',h:`Laden — on track (${lDays} days)`,b:`At ${fmt(lNet)} TEU/day weekday drain, recover to ${Math.round(t*100)}% by ${dFull(addDays(today,lDays))}.`});
-
-  $('alerts').innerHTML=A.map(a=>`<div class="alert ${a.t}"><span class="ico">${a.t==='critical'?'🔴':a.t==='warning'?'🟡':'🟢'}</span><div><b>${a.h}</b><br>${a.b}</div></div>`).join('');
+  // ---- one-line priority/status note ----
+  let st, sc;
+  if(eNet<=0){ sc='critical'; st=`<b>Empty not draining</b> — at ${fmt(eIn)} in vs ${fmt(eOut+eRepo)} out+repo/day, raise outbound/repositioning or cut inbound.`; }
+  else if(eDays>30){ sc='warning'; st=`<b>Empty is the priority</b> (${fmt(eExcess)} TEU over) — slow recovery, est. ${dFull(addDays(today,eDays))}. Empties dominate; laden is minor (${fmt(lExcess)} TEU).`; }
+  else { sc='ok'; st=`<b>Empty is the priority</b> (${fmt(eExcess)} TEU over) — on track to ${Math.round(t*100)}% by ${dFull(addDays(today,eDays))}. Laden minor (${fmt(lExcess)} TEU).`; }
+  $('priorityNote').className='mini-alert '+sc;
+  $('priorityNote').innerHTML=`<span class="ico">${sc==='critical'?'🔴':sc==='warning'?'🟡':'🟢'}</span><span>${st}</span>`;
 
   // ---- TABLE + chart data (with weekend seasonality) ----
   const rows=[],cl=[],eY=[],lY=[];
@@ -431,14 +426,18 @@ function compute(){
     lS=Math.max(0,lS-lNetD);
   }
 
+  // total revenue over horizon (throughput, seasonal)
+  let totRev=0; rows.forEach(r=>{ totRev+=(r.eInD+r.eOutD)*eRev+(r.lInD+r.lOutD)*lRev; });
+  const trc=document.getElementById('totRevCard'); if(trc) trc.textContent=fmtIDRs(totRev);
+
   $('tbody').innerHTML=rows.map(r=>`
     <tr class="${r.i===0?'today':''} ${r.we?'wknd':''}">
       <td>H+${r.i}</td><td>${dShort(r.date)}${r.we?' <span class="we">wk</span>':''}</td>
-      <td>${fmt(r.eCap)}</td><td>${fmt(r.eS)}</td>
+      <td>${fmt(r.eS)}</td>
       <td><span class="chip ${tier(r.eyor,t)}">${(r.eyor*100).toFixed(1)}%</span></td>
       <td>${fmt(r.eInD)}</td><td>${fmt(r.eOutD)}${r.eRepoD>0?'<span class="rp">+'+fmt(r.eRepoD)+'</span>':''}</td>
       <td class="${r.eNetD>0?'pos':'neg'}">${r.eNetD>0?'−':'+'}${fmt(Math.abs(r.eNetD))}</td>
-      <td>${fmt(r.lCap)}</td><td>${fmt(r.lS)}</td>
+      <td>${fmt(r.lS)}</td>
       <td><span class="chip ${tier(r.lyor,t)}">${(r.lyor*100).toFixed(1)}%</span></td>
       <td>${fmt(r.lInD)}</td><td>${fmt(r.lOutD)}</td>
       <td class="${r.lNetD>0?'pos':'neg'}">${r.lNetD>0?'−':'+'}${fmt(Math.abs(r.lNetD))}</td>
@@ -460,24 +459,6 @@ function compute(){
   });
 
   window._rows=rows;
-
-  // ---- REVENUE ----
-  const eRev=num('eRev'), lRev=num('lRev');
-  const basis=(document.getElementById('revBasis')||{}).value||'in';
-  const volE=(r)=>basis==='in'?r.eInD:basis==='out'?r.eOutD:r.eInD+r.eOutD;
-  const volL=(r)=>basis==='in'?r.lInD:basis==='out'?r.lOutD:r.lInD+r.lOutD;
-  const eDayVol=basis==='in'?eIn:basis==='out'?eOut:eIn+eOut;
-  const lDayVol=basis==='in'?lIn:basis==='out'?lOut:lIn+lOut;
-  const eDayRev=eDayVol*eRev, lDayRev=lDayVol*lRev, dayRev=eDayRev+lDayRev;
-  let totRev=0; rows.forEach(r=>{ totRev+=volE(r)*eRev+volL(r)*lRev; });
-  const basisLabel=basis==='in'?'inbound':basis==='out'?'outbound':'throughput (in+out)';
-  $('revMetrics').innerHTML=`
-    <div class="metric"><div class="ml">Empty revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(eDayRev)}</div><div class="ms">${fmt(eDayVol)} TEU × ${fmtIDR(eRev)}</div></div>
-    <div class="metric"><div class="ml">Laden revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(lDayRev)}</div><div class="ms">${fmt(lDayVol)} TEU × ${fmtIDR(lRev)}</div></div>
-    <div class="metric"><div class="ml">Total revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(dayRev)}</div><div class="ms">weekday run-rate</div></div>
-    <div class="metric"><div class="ml">Revenue over ${days} days</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(totRev)}</div><div class="ms">weekends at ${Math.round(wf*100)}% volume</div></div>
-  `;
-  $('revNote').innerHTML=`Revenue billed on <b>${basisLabel}</b> at Rp ${fmt(eRev)}/empty &amp; Rp ${fmt(lRev)}/laden TEU. Because revenue is tied to ${basisLabel}, draining the yard by cutting empty inbound <b>reduces revenue</b> — the trade-off to weigh against the overstock risk. Run the ideal recommendation to see the revenue forgone by the BCP plan.`;
 }
 
 // ─── IDEAL RECOMMENDATION OPTIMIZER ──────────────────────────
@@ -654,7 +635,6 @@ function buildReport(e,l,source,t,wf,today,fc){
   const eCap=num('eCap'), lCap=num('lCap');
   const eIn=num('eIn'),eOut=num('eOut'),eRepo=num('eRepo'),lIn=num('lIn'),lOut=num('lOut');
   const eRev=num('eRev'), lRev=num('lRev');
-  const basis=(document.getElementById('revBasis')||{}).value||'in';
   const eStart=num('eStock'), lStart=num('lStock');
   let eS=eStart, lS=lStart;
   const rows=[];
@@ -669,15 +649,14 @@ function buildReport(e,l,source,t,wf,today,fc){
   const eEnd=rows[N].eS, lEnd=rows[N].lS;
   const eYs=eStart/eCap, eYe=eEnd/eCap, lYs=lStart/lCap, lYe=lEnd/lCap;
 
-  // Revenue under this plan over H+14 (seasonally adjusted) + revenue forgone vs forecast demand
-  const volE=(r)=>basis==='in'?r.eInD:basis==='out'?r.eOutD:r.eInD+r.eOutD;
-  const volL=(r)=>basis==='in'?r.lInD:basis==='out'?r.lOutD:r.lInD+r.lOutD;
-  let planRev=0; rows.forEach(r=>{ planRev+=volE(r)*eRev+volL(r)*lRev; });
+  // Revenue under this plan over H+14 (LOLO on in+out throughput, seasonal)
+  // + revenue forgone vs forecast demand (each turned-away box = one full LOLO cycle)
+  let planRev=0; rows.forEach(r=>{ planRev+=(r.eInD+r.eOutD)*eRev+(r.lInD+r.lOutD)*lRev; });
   const effDays=effDrainDays(N,wf,today);
   const fcE=(fc&&fc.fcEmptyInbound!=null)?fc.fcEmptyInbound:eIn;
   const fcL=(fc&&fc.fcLadenInbound!=null)?fc.fcLadenInbound:lIn;
-  const forgoneE=Math.max(0,fcE-eIn)*eRev*effDays;
-  const forgoneL=Math.max(0,fcL-lIn)*lRev*effDays;
+  const forgoneE=Math.max(0,fcE-eIn)*(2*eRev)*effDays;  // 2× = full in+out cycle
+  const forgoneL=Math.max(0,fcL-lIn)*(2*lRev)*effDays;
   const forgone=forgoneE+forgoneL;
 
   const ppCell=(a,b)=>{ const d=(b-a)*100; const cls=d<0?'dn':d>0?'up':''; const ar=d<0?'↓':d>0?'↑':'–'; return `<td class="num ${cls}">${ar} ${Math.abs(d).toFixed(1)} pp</td>`; };
@@ -722,7 +701,7 @@ function buildReport(e,l,source,t,wf,today,fc){
         <tr><td>&nbsp;&nbsp;↳ from capped empty inbound</td><td class="num">${forgoneE>0?fmtIDRs(forgoneE):'—'}</td></tr>
         <tr><td>&nbsp;&nbsp;↳ from capped laden inbound</td><td class="num">${forgoneL>0?fmtIDRs(forgoneL):'—'}</td></tr>
       </table>
-      <div class="dash-note" style="margin:0 0 4px">Revenue forgone = inbound demand turned away to drain the yard, valued at Rp ${fmt(eRev)}/empty &amp; Rp ${fmt(lRev)}/laden TEU. This is the <b>commercial cost of the BCP</b> — weigh it against the overstock and overflow risk of staying above target.</div>
+      <div class="dash-note" style="margin:0 0 4px">Revenue forgone = empty inbound turned away to drain the yard, each box valued at a full LOLO in+out cycle (≈ Rp ${fmt(2*eRev)} empty / Rp ${fmt(2*lRev)} laden). This is the <b>commercial cost of the BCP</b> — weigh it against the overstock and overflow risk of staying above target.</div>
 
       <div class="report-sub">14-day projection (H+0 → H+14)</div>
       <div class="table-scroll">
