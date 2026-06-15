@@ -37,6 +37,8 @@
   .igroup.cfg .igroup-head{color:#9A7B12;} .igroup.cfg .dot{background:var(--gold);}
   .igroup.empty .igroup-head{color:#1E5C99;} .igroup.empty .dot{background:#378ADD;}
   .igroup.laden .igroup-head{color:#B0481F;} .igroup.laden .dot{background:#D85A30;}
+  .igroup.rev .igroup-head{color:#2A7D4F;} .igroup.rev .dot{background:#2A7D4F;}
+  .irow select{padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--text);background:#fff;font-family:inherit;}
   .irow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;}
   .irow:last-child{margin-bottom:0;}
   .irow label{font-size:11.5px;color:var(--muted);font-weight:500;flex:1;}
@@ -208,6 +210,13 @@
         <div class="irow"><label>Inbound (TEU/day)</label><input type="number" id="lIn" value="120"></div>
         <div class="irow"><label>Outbound (TEU/day)</label><input type="number" id="lOut" value="150"></div>
       </div>
+      <div class="igroup rev">
+        <div class="igroup-head"><span class="dot"></span>Revenue (IDR / TEU)</div>
+        <div class="irow"><label>Empty rev / TEU</label><input type="number" id="eRev" value="510704"></div>
+        <div class="irow"><label>Laden rev / TEU</label><input type="number" id="lRev" value="205907"></div>
+        <div class="irow"><label>Billed on</label><select id="revBasis" onchange="compute()"><option value="in">Inbound</option><option value="out">Outbound</option><option value="both">Throughput (in+out)</option></select></div>
+        <div class="hint">Rates = Mar–May avg (DEPO Empty ÷ Premium TEU, DEPO Full ÷ Tps TEU). Laden rate is volatile — adjust as needed.</div>
+      </div>
     </div>
     <div class="daysrow">
       <label style="font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap;">Recovery horizon</label>
@@ -231,6 +240,13 @@
   <section>
     <div class="sec-title"><span class="bar"></span>Recommendation &amp; alerts</div>
     <div class="alerts" id="alerts"></div>
+  </section>
+
+  <!-- REVENUE -->
+  <section>
+    <div class="sec-title"><span class="bar"></span>Revenue projection</div>
+    <div class="metrics" id="revMetrics"></div>
+    <div class="dash-note" id="revNote"></div>
   </section>
 
   <!-- CHART -->
@@ -319,12 +335,17 @@
 </div>
 
 <script>
-const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eMaxOut:900,lMaxOut:270,wf:0.5,eIn:400,eOut:550,eRepo:0,lIn:120,lOut:150,days:14};
+const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eMaxOut:900,lMaxOut:270,wf:0.5,eIn:400,eOut:550,eRepo:0,lIn:120,lOut:150,eRev:510704,lRev:205907,revBasis:'in',days:14};
 let chart=null;
 
 function $(id){return document.getElementById(id);}
 function num(id){return parseFloat($(id).value)||0;}
 function fmt(n){return Math.round(n).toLocaleString();}
+function fmtIDR(n){return 'Rp '+Math.round(n).toLocaleString('en-US');}
+function fmtIDRs(n){ const a=Math.abs(n);
+  if(a>=1e9) return 'Rp '+(n/1e9).toFixed(2)+' bn';
+  if(a>=1e6) return 'Rp '+(n/1e6).toFixed(0)+' jt';
+  return 'Rp '+Math.round(n).toLocaleString('en-US'); }
 function tier(yor,t){if(yor>=1)return'red';if(yor>=t)return'amber';return'green';}
 function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
 function dShort(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
@@ -439,6 +460,24 @@ function compute(){
   });
 
   window._rows=rows;
+
+  // ---- REVENUE ----
+  const eRev=num('eRev'), lRev=num('lRev');
+  const basis=(document.getElementById('revBasis')||{}).value||'in';
+  const volE=(r)=>basis==='in'?r.eInD:basis==='out'?r.eOutD:r.eInD+r.eOutD;
+  const volL=(r)=>basis==='in'?r.lInD:basis==='out'?r.lOutD:r.lInD+r.lOutD;
+  const eDayVol=basis==='in'?eIn:basis==='out'?eOut:eIn+eOut;
+  const lDayVol=basis==='in'?lIn:basis==='out'?lOut:lIn+lOut;
+  const eDayRev=eDayVol*eRev, lDayRev=lDayVol*lRev, dayRev=eDayRev+lDayRev;
+  let totRev=0; rows.forEach(r=>{ totRev+=volE(r)*eRev+volL(r)*lRev; });
+  const basisLabel=basis==='in'?'inbound':basis==='out'?'outbound':'throughput (in+out)';
+  $('revMetrics').innerHTML=`
+    <div class="metric"><div class="ml">Empty revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(eDayRev)}</div><div class="ms">${fmt(eDayVol)} TEU × ${fmtIDR(eRev)}</div></div>
+    <div class="metric"><div class="ml">Laden revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(lDayRev)}</div><div class="ms">${fmt(lDayVol)} TEU × ${fmtIDR(lRev)}</div></div>
+    <div class="metric"><div class="ml">Total revenue / day</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(dayRev)}</div><div class="ms">weekday run-rate</div></div>
+    <div class="metric"><div class="ml">Revenue over ${days} days</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(totRev)}</div><div class="ms">weekends at ${Math.round(wf*100)}% volume</div></div>
+  `;
+  $('revNote').innerHTML=`Revenue billed on <b>${basisLabel}</b> at Rp ${fmt(eRev)}/empty &amp; Rp ${fmt(lRev)}/laden TEU. Because revenue is tied to ${basisLabel}, draining the yard by cutting empty inbound <b>reduces revenue</b> — the trade-off to weigh against the overstock risk. Run the ideal recommendation to see the revenue forgone by the BCP plan.`;
 }
 
 // ─── IDEAL RECOMMENDATION OPTIMIZER ──────────────────────────
@@ -580,7 +619,7 @@ async function generateIdeal(){
         </div>
       </div>
       <div class="ideal-note">${buildNote(e,l,fc,horizon)}</div>
-    </div>`+buildReport(e,l,source,t,wf,today);
+    </div>`+buildReport(e,l,source,t,wf,today,fc);
 
   btn.disabled=false; btn.textContent='🎯 Generate ideal recommendation';
   if(source==='live YOR Daily data'){
@@ -610,10 +649,12 @@ function buildNote(e,l,fc,horizon){
 }
 
 // Build a report-ready block: recommended plan, current vs H+14, 14-day table.
-function buildReport(e,l,source,t,wf,today){
+function buildReport(e,l,source,t,wf,today,fc){
   const N=14;
   const eCap=num('eCap'), lCap=num('lCap');
   const eIn=num('eIn'),eOut=num('eOut'),eRepo=num('eRepo'),lIn=num('lIn'),lOut=num('lOut');
+  const eRev=num('eRev'), lRev=num('lRev');
+  const basis=(document.getElementById('revBasis')||{}).value||'in';
   const eStart=num('eStock'), lStart=num('lStock');
   let eS=eStart, lS=lStart;
   const rows=[];
@@ -627,6 +668,17 @@ function buildReport(e,l,source,t,wf,today){
   }
   const eEnd=rows[N].eS, lEnd=rows[N].lS;
   const eYs=eStart/eCap, eYe=eEnd/eCap, lYs=lStart/lCap, lYe=lEnd/lCap;
+
+  // Revenue under this plan over H+14 (seasonally adjusted) + revenue forgone vs forecast demand
+  const volE=(r)=>basis==='in'?r.eInD:basis==='out'?r.eOutD:r.eInD+r.eOutD;
+  const volL=(r)=>basis==='in'?r.lInD:basis==='out'?r.lOutD:r.lInD+r.lOutD;
+  let planRev=0; rows.forEach(r=>{ planRev+=volE(r)*eRev+volL(r)*lRev; });
+  const effDays=effDrainDays(N,wf,today);
+  const fcE=(fc&&fc.fcEmptyInbound!=null)?fc.fcEmptyInbound:eIn;
+  const fcL=(fc&&fc.fcLadenInbound!=null)?fc.fcLadenInbound:lIn;
+  const forgoneE=Math.max(0,fcE-eIn)*eRev*effDays;
+  const forgoneL=Math.max(0,fcL-lIn)*lRev*effDays;
+  const forgone=forgoneE+forgoneL;
 
   const ppCell=(a,b)=>{ const d=(b-a)*100; const cls=d<0?'dn':d>0?'up':''; const ar=d<0?'↓':d>0?'↑':'–'; return `<td class="num ${cls}">${ar} ${Math.abs(d).toFixed(1)} pp</td>`; };
   const stCell=(a,b)=>{ const d=b-a; const cls=d<0?'dn':d>0?'up':''; const ar=d<0?'↓':d>0?'↑':'–'; return `<td class="num ${cls}">${ar} ${fmt(Math.abs(d))}</td>`; };
@@ -661,6 +713,16 @@ function buildReport(e,l,source,t,wf,today){
         <tr><td>Laden YOR</td><td class="num">${(lYs*100).toFixed(1)}%</td><td class="num">${(lYe*100).toFixed(1)}%</td>${ppCell(lYs,lYe)}</tr>
         <tr><td>Laden stock (TEU)</td><td class="num">${fmt(lStart)}</td><td class="num">${fmt(lEnd)}</td>${stCell(lStart,lEnd)}</tr>
       </table>
+
+      <div class="report-sub">Revenue impact (H+14)</div>
+      <table class="ba-table">
+        <tr><th>Item</th><th style="text-align:right">Amount</th></tr>
+        <tr><td>Revenue under this plan (14 days)</td><td class="num">${fmtIDRs(planRev)}</td></tr>
+        <tr><td>Revenue forgone vs forecast demand</td><td class="num up">${forgone>0?'−'+fmtIDRs(forgone):'Rp 0'}</td></tr>
+        <tr><td>&nbsp;&nbsp;↳ from capped empty inbound</td><td class="num">${forgoneE>0?fmtIDRs(forgoneE):'—'}</td></tr>
+        <tr><td>&nbsp;&nbsp;↳ from capped laden inbound</td><td class="num">${forgoneL>0?fmtIDRs(forgoneL):'—'}</td></tr>
+      </table>
+      <div class="dash-note" style="margin:0 0 4px">Revenue forgone = inbound demand turned away to drain the yard, valued at Rp ${fmt(eRev)}/empty &amp; Rp ${fmt(lRev)}/laden TEU. This is the <b>commercial cost of the BCP</b> — weigh it against the overstock and overflow risk of staying above target.</div>
 
       <div class="report-sub">14-day projection (H+0 → H+14)</div>
       <div class="table-scroll">
