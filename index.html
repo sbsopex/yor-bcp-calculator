@@ -43,6 +43,8 @@
   .irow input{width:78px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;
     font-size:14px;font-weight:700;color:var(--text);background:#fff;text-align:right;transition:.15s;}
   .irow input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(26,58,92,.08);}
+  .hint{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.45;font-style:normal;}
+  .hint i{color:#9A7B12;font-style:normal;font-weight:700;}
 
   .opt-row{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap;}
   .btn-opt{padding:11px 20px;border-radius:9px;border:none;cursor:pointer;
@@ -99,6 +101,10 @@
   tbody td:nth-child(2){text-align:left;color:var(--muted);}
   tbody tr.today{background:#EBF5FB;}
   tbody tr.today td:first-child{color:var(--navy);}
+  tbody tr.wknd td{background:#FAFAF7;}
+  tbody tr.today.wknd td{background:#EBF5FB;}
+  .we{font-size:9px;color:var(--muted);background:#EDEFF2;padding:1px 4px;border-radius:4px;margin-left:4px;}
+  .rp{font-size:10px;color:#1E5C99;margin-left:3px;}
   .chip{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;}
   .chip.red{background:var(--red-bg);color:var(--red);}
   .chip.amber{background:var(--amber-bg);color:var(--amber);}
@@ -145,11 +151,14 @@
         <div class="irow"><label>Target YOR (%)</label><input type="number" id="target" value="80" step="1"></div>
         <div class="irow"><label>Empty max outbound/day</label><input type="number" id="eMaxOut" value="900"></div>
         <div class="irow"><label>Laden max outbound/day</label><input type="number" id="lMaxOut" value="270"></div>
+        <div class="irow"><label>Weekend volume factor</label><input type="number" id="wf" value="0.5" step="0.05" min="0" max="1"></div>
+        <div class="hint">Use operational <i>safe</i> capacity &amp; <i>sustainable</i> (not peak) outbound. Weekend factor scales Sat/Sun flows.</div>
       </div>
       <div class="igroup empty">
         <div class="igroup-head"><span class="dot"></span>Empty flow (side loader)</div>
         <div class="irow"><label>Inbound (TEU/day)</label><input type="number" id="eIn" value="400"></div>
         <div class="irow"><label>Outbound (TEU/day)</label><input type="number" id="eOut" value="550"></div>
+        <div class="irow"><label>Repositioning out/day</label><input type="number" id="eRepo" value="0"></div>
       </div>
       <div class="igroup laden">
         <div class="igroup-head"><span class="dot"></span>Laden flow (reach stacker)</div>
@@ -215,7 +224,7 @@
 </div>
 
 <script>
-const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eIn:400,eOut:550,lIn:120,lOut:150,days:14};
+const DEFAULTS = {eStock:16268,lStock:1597,eCap:12988,lCap:1300,target:80,eMaxOut:900,lMaxOut:270,wf:0.5,eIn:400,eOut:550,eRepo:0,lIn:120,lOut:150,days:14};
 let chart=null;
 
 function $(id){return document.getElementById(id);}
@@ -226,69 +235,97 @@ function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
 function dShort(d){return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function dFull(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
 
+function isWeekend(d){const g=d.getDay();return g===0||g===6;}
+
+// Simulate day-by-day with weekend seasonality; returns calendar days to reach target.
+// weekdayNet = full weekday net drain (out + repo - in). Weekends scaled by wf.
+function simRecoveryDays(stock,target,weekdayNet,wf,start){
+  if(stock<=target) return 0;
+  if(weekdayNet<=0) return Infinity;
+  let s=stock,d=0;
+  while(s>target && d<3650){
+    const day=addDays(start,d);
+    s-=weekdayNet*(isWeekend(day)?wf:1);
+    d++;
+  }
+  return s<=target?d:Infinity;
+}
+
 function compute(){
   const eStock=num('eStock'),lStock=num('lStock'),eCap=num('eCap'),lCap=num('lCap');
   const t=num('target')/100;
   const eIn=num('eIn'),eOut=num('eOut'),lIn=num('lIn'),lOut=num('lOut');
+  const eRepo=num('eRepo');
+  const wf=Math.min(1,Math.max(0,num('wf')));
   const days=num('days');
   $('daysOut').textContent=days+' days';
 
-  const eNet=eOut-eIn, lNet=lOut-lIn;           // positive = draining
+  // Weekday net drain (full). Empties also drained by repositioning.
+  const eNet=eOut+eRepo-eIn, lNet=lOut-lIn;
   const eYOR=eStock/eCap, lYOR=lStock/lCap;
   const eTarget=Math.round(eCap*t), lTarget=Math.round(lCap*t);
   const eExcess=Math.max(0,eStock-eTarget), lExcess=Math.max(0,lStock-lTarget);
-  const eDays=eNet>0?Math.ceil(eExcess/eNet):Infinity;
-  const lDays=lNet>0?Math.ceil(lExcess/lNet):Infinity;
   const today=new Date();today.setHours(0,0,0,0);
+  const eDays=simRecoveryDays(eStock,eTarget,eNet,wf,today);
+  const lDays=simRecoveryDays(lStock,lTarget,lNet,wf,today);
 
   // ---- METRICS ----
   const eT=tier(eYOR,t), lT=tier(lYOR,t);
+  const priority=eExcess>=lExcess?'Empty':'Laden';
   $('metrics').innerHTML=`
     <div class="metric"><div class="ml">Empty YOR</div><div class="mv ${eT}">${(eYOR*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} TEU</div></div>
     <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${(lYOR*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} TEU</div></div>
-    <div class="metric"><div class="ml">Empty net drain/day</div><div class="mv ${eNet>0?'green':'red'}">${eNet>0?'−':'+'}${fmt(Math.abs(eNet))}</div><div class="ms">out ${fmt(eOut)} − in ${fmt(eIn)}</div></div>
+    <div class="metric"><div class="ml">Empty overstock <b style="color:var(--navy)">▲ priority</b></div><div class="mv ${eExcess>0?'red':'green'}">${fmt(eExcess)}</div><div class="ms">TEU above ${Math.round(t*100)}% target</div></div>
+    <div class="metric"><div class="ml">Laden overstock</div><div class="mv ${lExcess>0?'amber':'green'}">${fmt(lExcess)}</div><div class="ms">TEU above ${Math.round(t*100)}% target</div></div>
+    <div class="metric"><div class="ml">Empty net drain/day</div><div class="mv ${eNet>0?'green':'red'}">${eNet>0?'−':'+'}${fmt(Math.abs(eNet))}</div><div class="ms">out ${fmt(eOut)}${eRepo>0?' + repo '+fmt(eRepo):''} − in ${fmt(eIn)}</div></div>
     <div class="metric"><div class="ml">Laden net drain/day</div><div class="mv ${lNet>0?'green':'red'}">${lNet>0?'−':'+'}${fmt(Math.abs(lNet))}</div><div class="ms">out ${fmt(lOut)} − in ${fmt(lIn)}</div></div>
-    <div class="metric"><div class="ml">Empty → 80% target</div><div class="mv ${eDays===Infinity?'red':eDays>30?'amber':'green'}">${eDays===Infinity?'∞':eDays+'d'}</div><div class="ms">${eDays===Infinity?'not recovering':dFull(addDays(today,eDays))}</div></div>
-    <div class="metric"><div class="ml">Laden → 80% target</div><div class="mv ${lDays===Infinity?'red':lDays>30?'amber':'green'}">${lDays===Infinity?'∞':lDays+'d'}</div><div class="ms">${lDays===Infinity?'not recovering':dFull(addDays(today,lDays))}</div></div>
+    <div class="metric"><div class="ml">Empty → ${Math.round(t*100)}% target</div><div class="mv ${eDays===Infinity?'red':eDays>30?'amber':'green'}">${eDays===Infinity?'∞':eDays+'d'}</div><div class="ms">${eDays===Infinity?'not recovering':dFull(addDays(today,eDays))}</div></div>
+    <div class="metric"><div class="ml">Laden → ${Math.round(t*100)}% target</div><div class="mv ${lDays===Infinity?'red':lDays>30?'amber':'green'}">${lDays===Infinity?'∞':lDays+'d'}</div><div class="ms">${lDays===Infinity?'not recovering':dFull(addDays(today,lDays))}</div></div>
   `;
 
   // ---- ALERTS ----
   const A=[];
-  if(eNet<=0)A.push({t:'critical',h:'Empty — stock keeps growing',b:`At ${fmt(eIn)} in / ${fmt(eOut)} out per day, empty yard will not drain. Increase outbound or cut inbound below ${fmt(eOut)} TEU/day.`});
-  else if(eDays>30)A.push({t:'warning',h:`Empty — slow recovery (${eDays} days)`,b:`Recovery to 80% by ${dFull(addDays(today,eDays))}. To speed up, raise outbound or reduce empty inbound.`});
-  else A.push({t:'ok',h:`Empty — on track (${eDays} days)`,b:`At ${fmt(eNet)} TEU/day net drain, recover to 80% by ${dFull(addDays(today,eDays))}.`});
+  A.push({t:'warning',h:`Empty is the priority — ${fmt(eExcess)} TEU over target vs ${fmt(lExcess)} TEU laden`,b:`The overstock is overwhelmingly empties. Recovery depends on side-loader outbound <i>and</i> shipping-line evacuation / repositioning, which is partly outside yard control. Laden is comparatively minor.`});
+  if(eNet<=0)A.push({t:'critical',h:'Empty — stock keeps growing',b:`At ${fmt(eIn)} in vs ${fmt(eOut+eRepo)} out+repo per day, empty yard will not drain. Raise outbound/repositioning or cut inbound below ${fmt(eOut+eRepo)} TEU/day.`});
+  else if(eDays>30)A.push({t:'warning',h:`Empty — slow recovery (${eDays} days)`,b:`Recovery to ${Math.round(t*100)}% by ${dFull(addDays(today,eDays))} (weekends drain at ${Math.round(wf*100)}% rate). Speed up via more repositioning or lower inbound.`});
+  else A.push({t:'ok',h:`Empty — on track (${eDays} days)`,b:`At ${fmt(eNet)} TEU/day weekday drain, recover to ${Math.round(t*100)}% by ${dFull(addDays(today,eDays))}.`});
 
   if(lNet<=0)A.push({t:'critical',h:'Laden — stock keeps growing',b:`At ${fmt(lIn)} in / ${fmt(lOut)} out per day, laden yard will not drain. Reach-stacker outbound must exceed ${fmt(lIn)} TEU/day.`});
-  else if(lDays>30)A.push({t:'warning',h:`Laden — slow recovery (${lDays} days)`,b:`Recovery to 80% by ${dFull(addDays(today,lDays))}. Push prioritised laden outbound or limit bookings.`});
-  else A.push({t:'ok',h:`Laden — on track (${lDays} days)`,b:`At ${fmt(lNet)} TEU/day net drain, recover to 80% by ${dFull(addDays(today,lDays))}.`});
+  else if(lDays>30)A.push({t:'warning',h:`Laden — slow recovery (${lDays} days)`,b:`Recovery to ${Math.round(t*100)}% by ${dFull(addDays(today,lDays))}. Push prioritised laden outbound or limit bookings.`});
+  else A.push({t:'ok',h:`Laden — on track (${lDays} days)`,b:`At ${fmt(lNet)} TEU/day weekday drain, recover to ${Math.round(t*100)}% by ${dFull(addDays(today,lDays))}.`});
 
   $('alerts').innerHTML=A.map(a=>`<div class="alert ${a.t}"><span class="ico">${a.t==='critical'?'🔴':a.t==='warning'?'🟡':'🟢'}</span><div><b>${a.h}</b><br>${a.b}</div></div>`).join('');
 
-  // ---- TABLE + chart data ----
+  // ---- TABLE + chart data (with weekend seasonality) ----
   const rows=[],cl=[],eY=[],lY=[];
   let eS=eStock,lS=lStock;
   for(let i=0;i<=days;i++){
     const date=addDays(today,i);
+    const we=isWeekend(date);
+    const f=we?wf:1;
+    const eInD=Math.round(eIn*f), eOutD=Math.round(eOut*f), eRepoD=Math.round(eRepo*f);
+    const lInD=Math.round(lIn*f), lOutD=Math.round(lOut*f);
+    const eNetD=eOutD+eRepoD-eInD, lNetD=lOutD-lInD;
     const eyor=eS/eCap, lyor=lS/lCap;
-    rows.push({i,date,eCap,eS,eyor,eIn,eOut,eNet,lCap,lS,lyor,lIn,lOut,lNet});
+    rows.push({i,date,we,eCap,eS,eyor,eInD,eOutD,eRepoD,eNetD,lCap,lS,lyor,lInD,lOutD,lNetD});
     cl.push(i%Math.ceil(days/12)===0?dShort(date):'');
     eY.push(+(eyor*100).toFixed(1));
     lY.push(+(lyor*100).toFixed(1));
-    eS=Math.max(0,eS-eNet);
-    lS=Math.max(0,lS-lNet);
+    eS=Math.max(0,eS-eNetD);
+    lS=Math.max(0,lS-lNetD);
   }
 
   $('tbody').innerHTML=rows.map(r=>`
-    <tr class="${r.i===0?'today':''}">
-      <td>H+${r.i}</td><td>${dShort(r.date)}</td>
+    <tr class="${r.i===0?'today':''} ${r.we?'wknd':''}">
+      <td>H+${r.i}</td><td>${dShort(r.date)}${r.we?' <span class="we">wk</span>':''}</td>
       <td>${fmt(r.eCap)}</td><td>${fmt(r.eS)}</td>
       <td><span class="chip ${tier(r.eyor,t)}">${(r.eyor*100).toFixed(1)}%</span></td>
-      <td>${fmt(r.eIn)}</td><td>${fmt(r.eOut)}</td>
-      <td class="${r.eNet>0?'pos':'neg'}">${r.eNet>0?'−':'+'}${fmt(Math.abs(r.eNet))}</td>
+      <td>${fmt(r.eInD)}</td><td>${fmt(r.eOutD)}${r.eRepoD>0?'<span class="rp">+'+fmt(r.eRepoD)+'</span>':''}</td>
+      <td class="${r.eNetD>0?'pos':'neg'}">${r.eNetD>0?'−':'+'}${fmt(Math.abs(r.eNetD))}</td>
       <td>${fmt(r.lCap)}</td><td>${fmt(r.lS)}</td>
       <td><span class="chip ${tier(r.lyor,t)}">${(r.lyor*100).toFixed(1)}%</span></td>
-      <td>${fmt(r.lIn)}</td><td>${fmt(r.lOut)}</td>
-      <td class="${r.lNet>0?'pos':'neg'}">${r.lNet>0?'−':'+'}${fmt(Math.abs(r.lNet))}</td>
+      <td>${fmt(r.lInD)}</td><td>${fmt(r.lOutD)}</td>
+      <td class="${r.lNetD>0?'pos':'neg'}">${r.lNetD>0?'−':'+'}${fmt(Math.abs(r.lNetD))}</td>
     </tr>`).join('');
 
   // ---- CHART ----
@@ -313,17 +350,15 @@ function compute(){
 const SHEET_ID='1VgyCWMtSnNknlL4SgE9Q5DvGj7cR7IBQNnUkL3kZCQU';
 const YOR_TAB='YOR Daily';
 
-async function fetchSheet(){
-  // Columns in YOR Daily (range A6:P, headers=0):
-  // 0 Date · 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
-  // 12 Laden in · 13 Laden out · 14 Laden stock
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(YOR_TAB)}&range=A6:P200&headers=0`;
-  const res=await fetch(url);
-  const txt=await res.text();
-  const json=JSON.parse(txt.match(/setResponse\(([\s\S]*)\);?$/)[1]);
-  const rows=json.table.rows||[];
+function parseYorRows(json){
+  if(json && json.status==='error'){
+    const reason=(json.errors&&json.errors[0]&&(json.errors[0].reason||json.errors[0].detailed_message))||'';
+    if(/access|auth|permission|denied/i.test(reason)) throw new Error('NOT_PUBLIC');
+    throw new Error('SHEET_ERR');
+  }
+  const rows=(json && json.table && json.table.rows)||[];
+  if(!rows.length) throw new Error('EMPTY');
   const val=(c)=>c&&c.v!=null?Number(c.v):null;
-
   let lastActual=null, fcEmptyIn=[], fcLadenIn=[];
   rows.forEach(r=>{
     const c=r.c||[];
@@ -339,26 +374,57 @@ async function fetchSheet(){
   return {lastActual, fcEmptyInbound:avg(fcEmptyIn), fcLadenInbound:avg(fcLadenIn)};
 }
 
-// Solve ideal inbound/outbound for one container type
-function solve(stock, cap, target, maxOut, forecastIn, horizon){
+// JSONP loader — bypasses CORS by loading via <script> instead of fetch().
+// Works for any sheet shared as "Anyone with the link can view".
+// Columns in YOR Daily (range A6:P, headers=0):
+// 0 Date · 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
+// 12 Laden in · 13 Laden out · 14 Laden stock
+function fetchSheet(){
+  return new Promise((resolve,reject)=>{
+    const cb='__gviz_'+Math.random().toString(36).slice(2);
+    const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`
+      +`?tqx=responseHandler:${cb}&sheet=${encodeURIComponent(YOR_TAB)}&range=A6:P200&headers=0`;
+    const script=document.createElement('script');
+    let done=false;
+    const cleanup=()=>{ try{delete window[cb];}catch(_){window[cb]=void 0;} if(script.parentNode)script.parentNode.removeChild(script); };
+    const timer=setTimeout(()=>{ if(done)return; done=true; cleanup(); reject(new Error('NET')); },12000);
+    window[cb]=(json)=>{ if(done)return; done=true; clearTimeout(timer); cleanup();
+      try{ resolve(parseYorRows(json)); }catch(err){ reject(err); } };
+    script.onerror=()=>{ if(done)return; done=true; clearTimeout(timer); cleanup(); reject(new Error('NOT_PUBLIC')); };
+    script.src=url;
+    document.head.appendChild(script);
+  });
+}
+
+// Effective weekday-equivalent drain days over a horizon (weekends count as wf).
+function effDrainDays(horizon,wf,start){
+  let n=0;
+  for(let i=0;i<horizon;i++){ n+=isWeekend(addDays(start,i))?wf:1; }
+  return n||1;
+}
+
+// Solve ideal inbound/outbound for one type.
+// repo = fixed repositioning drain already committed (empties); 0 for laden.
+function solve(stock, cap, target, maxOut, forecastIn, horizon, wf, start, repo){
+  repo=repo||0;
   const tgtStock=cap*target;
   const excess=Math.max(0, stock-tgtStock);
-  if(excess===0) return {inbound:Math.round(forecastIn||maxOut*0.5), outbound:Math.round((forecastIn||0)), net:0, days:0, atTarget:true};
-  const neededNet=excess/horizon;                  // drain/day to hit target by horizon
-  let inbound, outbound, achievableDays;
-  if((forecastIn!=null) && (forecastIn+neededNet<=maxOut)){
-    // can accept full forecast demand and still recover on time
+  if(excess===0) return {inbound:Math.round(forecastIn||maxOut*0.5), outbound:Math.round(forecastIn||0), net:repo, days:0, atTarget:true};
+  const effDays=effDrainDays(horizon,wf,start);
+  const neededNet=excess/effDays;              // weekday-equivalent net drain to hit target by horizon
+  let inbound, outbound;
+  // drain = outbound + repo - inbound ; want drain ≈ neededNet, accept max inbound
+  if((forecastIn!=null) && (forecastIn+neededNet-repo<=maxOut)){
     inbound=forecastIn;
-    outbound=Math.min(maxOut, forecastIn+neededNet);
+    outbound=Math.min(maxOut, forecastIn+neededNet-repo);
   } else {
-    // must run outbound at max; accept the most inbound that still recovers in horizon
     outbound=maxOut;
-    inbound=Math.max(0, maxOut-neededNet);
+    inbound=Math.max(0, maxOut+repo-neededNet);
     if(forecastIn!=null) inbound=Math.min(inbound, forecastIn);
   }
-  const net=outbound-inbound;
-  achievableDays=net>0?Math.ceil(excess/net):Infinity;
-  return {inbound:Math.round(inbound), outbound:Math.round(outbound), net:Math.round(net), days:achievableDays, atTarget:false};
+  const net=outbound+repo-inbound;
+  const days=net>0?simRecoveryDays(stock,tgtStock,net,wf,start):Infinity;
+  return {inbound:Math.round(inbound), outbound:Math.round(outbound), net:Math.round(net), days, atTarget:false};
 }
 
 async function generateIdeal(){
@@ -366,7 +432,7 @@ async function generateIdeal(){
   btn.disabled=true; btn.textContent='⏳ Calculating…';
   status.className='opt-status'; status.textContent='Pulling latest data from YOR Daily…';
 
-  let fc={lastActual:null,fcEmptyInbound:null,fcLadenInbound:null}, source='current inputs';
+  let fc={lastActual:null,fcEmptyInbound:null,fcLadenInbound:null}, source='current inputs', errCode='';
   try{
     fc=await fetchSheet();
     if(fc.lastActual){
@@ -375,6 +441,7 @@ async function generateIdeal(){
       source='live YOR Daily data';
     }
   }catch(e){
+    errCode=e.message||'NET';
     status.className='opt-status err';
   }
 
@@ -382,34 +449,37 @@ async function generateIdeal(){
   const eCap=num('eCap'), lCap=num('lCap'), t=num('target')/100;
   const eMaxOut=num('eMaxOut'), lMaxOut=num('lMaxOut');
   const eStock=num('eStock'), lStock=num('lStock');
+  const wf=Math.min(1,Math.max(0,num('wf')));
+  const eRepo=num('eRepo');
+  const today=new Date();today.setHours(0,0,0,0);
 
-  const e=solve(eStock, eCap, t, eMaxOut, fc.fcEmptyInbound, horizon);
-  const l=solve(lStock, lCap, t, lMaxOut, fc.fcLadenInbound, horizon);
+  const e=solve(eStock, eCap, t, eMaxOut, fc.fcEmptyInbound, horizon, wf, today, eRepo);
+  const l=solve(lStock, lCap, t, lMaxOut, fc.fcLadenInbound, horizon, wf, today, 0);
 
   // apply to inputs
   $('eIn').value=e.inbound; $('eOut').value=e.outbound;
   $('lIn').value=l.inbound; $('lOut').value=l.outbound;
   compute();
 
-  const today=new Date();today.setHours(0,0,0,0);
   const recDate=d=>d===Infinity?'beyond horizon':dFull(addDays(today,d));
 
   $('idealOut').innerHTML=`
     <div class="ideal-banner">
-      <div class="ihead">🎯 Ideal recommendation · target 80% YOR within ${horizon} days · source: ${source}</div>
+      <div class="ihead">🎯 Ideal recommendation · target ${Math.round(t*100)}% YOR within ${horizon} days (weekends at ${Math.round(wf*100)}% rate) · source: ${source}</div>
       <div class="ideal-grid">
         <div class="ideal-cell e">
-          <h4>🔵 Empty (side loader)</h4>
+          <h4>🔵 Empty (side loader) · priority</h4>
           <div class="recline"><span>Accept inbound</span><b>${fmt(e.inbound)} TEU/day</b></div>
           <div class="recline"><span>Push outbound</span><b>${fmt(e.outbound)} TEU/day</b></div>
-          <div class="recline"><span>Net drain</span><b class="${e.net>0?'pos':'neg'}">${e.net>0?'−':'+'}${fmt(Math.abs(e.net))} TEU/day</b></div>
+          <div class="recline"><span>Repositioning out</span><b>${fmt(num('eRepo'))} TEU/day</b></div>
+          <div class="recline"><span>Net drain (weekday)</span><b class="${e.net>0?'pos':'neg'}">${e.net>0?'−':'+'}${fmt(Math.abs(e.net))} TEU/day</b></div>
           <div class="recline"><span>Recovery</span><b>${e.atTarget?'already at target':e.days+' days ('+recDate(e.days)+')'}</b></div>
         </div>
         <div class="ideal-cell l">
           <h4>🟠 Laden (reach stacker)</h4>
           <div class="recline"><span>Accept inbound</span><b>${fmt(l.inbound)} TEU/day</b></div>
           <div class="recline"><span>Push outbound</span><b>${fmt(l.outbound)} TEU/day</b></div>
-          <div class="recline"><span>Net drain</span><b class="${l.net>0?'pos':'neg'}">${l.net>0?'−':'+'}${fmt(Math.abs(l.net))} TEU/day</b></div>
+          <div class="recline"><span>Net drain (weekday)</span><b class="${l.net>0?'pos':'neg'}">${l.net>0?'−':'+'}${fmt(Math.abs(l.net))} TEU/day</b></div>
           <div class="recline"><span>Recovery</span><b>${l.atTarget?'already at target':l.days+' days ('+recDate(l.days)+')'}</b></div>
         </div>
       </div>
@@ -417,28 +487,40 @@ async function generateIdeal(){
     </div>`;
 
   btn.disabled=false; btn.textContent='🎯 Generate ideal recommendation';
-  status.className='opt-status ok';
-  status.textContent=source==='live YOR Daily data'
-    ? '✓ Synced with YOR Daily and optimised. Inputs above updated.'
-    : '⚠ Couldn\'t reach the sheet (check it\'s shared as "anyone with link can view"). Optimised from current inputs instead.';
+  if(source==='live YOR Daily data'){
+    status.className='opt-status ok';
+    status.textContent='✓ Synced with YOR Daily and optimised. Inputs above updated.';
+  }else{
+    status.className='opt-status err';
+    const msg={
+      'NOT_PUBLIC':'The sheet isn\'t readable by outside requests. If you\'re on Google Workspace, "anyone with link" may be limited to your organisation — remove the domain restriction, or use File ▸ Share ▸ Publish to web.',
+      'EMPTY':'Connected, but found no rows in YOR Daily A6:P200 — check the tab is named exactly "YOR Daily".',
+      'SHEET_ERR':'The sheet returned an error — check the tab name is exactly "YOR Daily".',
+      'NET':'Request timed out — check your connection and that the link is public.'
+    }[errCode] || 'Couldn\'t reach the sheet. Make sure it\'s shared as "Anyone with the link can view".';
+    status.textContent='⚠ '+msg+' Optimised from current inputs instead.';
+  }
 }
 
 function buildNote(e,l,fc,horizon){
   const parts=[];
+  parts.push(`<b>Empties are the priority</b> — that's where the overstock is.`);
+  if(num('eRepo')>0) parts.push(`Plan includes <b>${fmt(num('eRepo'))} TEU/day repositioning</b> out of the depot.`);
   if(fc.fcEmptyInbound!=null) parts.push(`Forecast empty inbound demand ≈ <b>${fmt(fc.fcEmptyInbound)}</b> TEU/day.`);
   if(e.inbound < (fc.fcEmptyInbound||Infinity))
-    parts.push(`Empty inbound must be capped <b>below forecast demand</b> — even at max outbound the yard can't absorb full volume within ${horizon} days.`);
+    parts.push(`Empty inbound must be capped <b>below forecast demand</b> — even at max outbound + repositioning the yard can't absorb full volume within ${horizon} days.`);
   else
     parts.push(`Empty: full forecast inbound can be accepted while still recovering on time.`);
   if(l.net<=0) parts.push(`<b>Laden warning:</b> at max reach-stacker outbound the laden yard still won't drain — review headcount.`);
+  parts.push(`Recovery dates already account for weekends running at ${Math.round(Math.min(1,Math.max(0,num('wf')))*100)}% throughput. Empty evacuation also depends on shipping-line vessel schedules, partly outside yard control.`);
   return parts.join(' ');
 }
 
 function exportCSV(){
   const r=window._rows||[];
-  const head=['Day','Date','Empty cap','Empty stock','Empty YOR%','Empty in','Empty out','Empty net','Laden cap','Laden stock','Laden YOR%','Laden in','Laden out','Laden net'];
+  const head=['Day','Date','Weekend','Empty cap','Empty stock','Empty YOR%','Empty in','Empty out','Empty repo','Empty net','Laden cap','Laden stock','Laden YOR%','Laden in','Laden out','Laden net'];
   const lines=[head.join(',')];
-  r.forEach(x=>lines.push([`H+${x.i}`,dFull(x.date),x.eCap,Math.round(x.eS),(x.eyor*100).toFixed(1),x.eIn,x.eOut,x.eNet,x.lCap,Math.round(x.lS),(x.lyor*100).toFixed(1),x.lIn,x.lOut,x.lNet].join(',')));
+  r.forEach(x=>lines.push([`H+${x.i}`,dFull(x.date),x.we?'Y':'N',x.eCap,Math.round(x.eS),(x.eyor*100).toFixed(1),x.eInD,x.eOutD,x.eRepoD,x.eNetD,x.lCap,Math.round(x.lS),(x.lyor*100).toFixed(1),x.lInD,x.lOutD,x.lNetD].join(',')));
   const blob=new Blob([lines.join('\n')],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SBS_YOR_BCP_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
