@@ -8,19 +8,20 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
-    --navy:#0A2342; --navy2:#1A3A5C; --red:#A32D2D; --gold:#D4AF37;
-    --green:#3B6D11; --green-bg:#EAF3DE; --amber:#854F0B; --amber-bg:#FAEEDA;
-    --red-bg:#FCEBEB; --line:#E2E6EB; --bg:#F4F6F9; --card:#FFFFFF;
+    --navy:#0A2A8C; --navy2:#13379E; --red:#E8201A; --gold:#F5C518;
+    --green:#2E7D32; --green-bg:#E8F2E1; --amber:#9A6B00; --amber-bg:#FCF1D6;
+    --red-bg:#FCE9E8; --line:#E2E6EB; --bg:#F4F6F9; --card:#FFFFFF;
     --text:#1A2433; --muted:#6B7585;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     background:var(--bg);color:var(--text);line-height:1.5;padding:0 0 60px;}
   .topbar{background:var(--navy);color:#fff;padding:18px 24px;display:flex;
-    align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);}
+    align-items:center;justify-content:space-between;border-bottom:4px solid var(--gold);
+    box-shadow:inset 0 -7px 0 var(--gold), inset 0 -10px 0 var(--red);}
   .topbar h1{font-size:18px;font-weight:600;letter-spacing:.3px;}
-  .topbar .sub{font-size:12px;color:#A9BCD4;margin-top:2px;}
-  .topbar .stamp{font-size:12px;color:#A9BCD4;text-align:right;}
+  .topbar .sub{font-size:12px;color:#BCC8EE;margin-top:2px;}
+  .topbar .stamp{font-size:12px;color:#BCC8EE;text-align:right;}
   .wrap{max-width:1180px;margin:0 auto;padding:0 16px;}
   .grid{display:grid;gap:16px;}
   section{background:var(--card);border:1px solid var(--line);border-radius:10px;
@@ -35,51 +36,51 @@
     margin-bottom:9px;display:flex;align-items:center;gap:6px;}
   .igroup-head .dot{width:8px;height:8px;border-radius:50%;}
   .igroup.stock .igroup-head{color:var(--navy);} .igroup.stock .dot{background:var(--navy);}
-  .igroup.cfg .igroup-head{color:#9A7B12;} .igroup.cfg .dot{background:var(--gold);}
-  .igroup.empty .igroup-head{color:#1E5C99;} .igroup.empty .dot{background:#378ADD;}
-  .igroup.laden .igroup-head{color:#B0481F;} .igroup.laden .dot{background:#D85A30;}
-  .igroup.rev .igroup-head{color:#2A7D4F;} .igroup.rev .dot{background:#2A7D4F;}
+  .igroup.cfg .igroup-head{color:#9A6B00;} .igroup.cfg .dot{background:var(--gold);}
+  .igroup.empty .igroup-head{color:var(--navy);} .igroup.empty .dot{background:var(--navy2);}
+  .igroup.laden .igroup-head{color:#B0140F;} .igroup.laden .dot{background:var(--red);}
+  .igroup.rev .igroup-head{color:#2E7D32;} .igroup.rev .dot{background:#2E7D32;}
   .irow select{padding:5px 7px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;font-weight:600;color:var(--text);background:#fff;font-family:inherit;}
   .irow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;}
   .irow:last-child{margin-bottom:0;}
   .irow label{font-size:11.5px;color:var(--muted);font-weight:500;flex:1;}
   .irow input{width:78px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;
     font-size:14px;font-weight:700;color:var(--text);background:#fff;text-align:right;transition:.15s;}
-  .irow input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(26,58,92,.08);}
+  .irow input:focus{outline:none;border-color:var(--navy2);box-shadow:0 0 0 3px rgba(10,42,140,.1);}
   .irow input[readonly]{background:#F1F4F8;color:var(--navy);border-color:#D6DEE8;cursor:not-allowed;}
   .hidden-inputs{display:none;}
   .hint{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.45;font-style:normal;}
-  .hint i{color:#9A7B12;font-style:normal;font-weight:700;}
+  .hint i{color:#9A6B00;font-style:normal;font-weight:700;}
 
-  .opt-row{display:flex;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap;}
+  .opt-row{display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;}
   .btn-opt{padding:11px 20px;border-radius:9px;border:none;cursor:pointer;
     background:linear-gradient(90deg,var(--navy),var(--navy2));color:#fff;
     font-size:14px;font-weight:700;letter-spacing:.2px;transition:.15s;
-    box-shadow:0 2px 6px rgba(10,35,66,.25);white-space:nowrap;}
-  .btn-opt:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(10,35,66,.3);}
+    box-shadow:0 2px 6px rgba(10,42,140,.25);white-space:nowrap;}
+  .btn-opt:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(10,42,140,.3);}
   .btn-opt:active{transform:translateY(0);}
   .btn-opt:disabled{opacity:.6;cursor:wait;transform:none;}
   .opt-status{font-size:12px;color:var(--muted);flex:1;min-width:200px;}
   .opt-status.err{color:var(--red);} .opt-status.ok{color:var(--green);}
 
   .ideal-banner{margin-top:14px;border:1px solid var(--gold);border-radius:10px;overflow:hidden;}
-  .ideal-banner .ihead{background:linear-gradient(90deg,#FBF6E6,#FDFBF2);padding:10px 16px;
-    font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9A7B12;
+  .ideal-banner .ihead{background:linear-gradient(90deg,#FEF7DC,#FFFDF4);padding:10px 16px;
+    font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8A5A00;
     border-bottom:1px solid var(--gold);display:flex;align-items:center;gap:8px;}
   .ideal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);}
   .ideal-cell{background:#fff;padding:14px 16px;}
   .ideal-cell h4{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px;}
-  .ideal-cell.e h4{color:#1E5C99;} .ideal-cell.l h4{color:#B0481F;}
+  .ideal-cell.e h4{color:var(--navy);} .ideal-cell.l h4{color:#B0140F;}
   .ideal-cell .recline{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
   .ideal-cell .recline span:first-child{color:var(--muted);}
   .ideal-cell .recline b{font-weight:700;}
-  .ideal-note{padding:11px 16px;font-size:12.5px;color:var(--text);background:#FCFBF6;line-height:1.55;}
+  .ideal-note{padding:11px 16px;font-size:12.5px;color:var(--text);background:#FFFDF4;line-height:1.55;}
   @media(max-width:560px){.ideal-grid{grid-template-columns:1fr;}}
 
   .report-card{margin-top:16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
   .report-head{background:var(--navy);color:#fff;padding:14px 18px;border-bottom:3px solid var(--gold);}
   .report-head h3{font-size:15px;font-weight:700;margin-bottom:3px;}
-  .report-head .meta{font-size:11px;color:#A9BCD4;}
+  .report-head .meta{font-size:11px;color:#BCC8EE;}
   .report-body{padding:16px 18px;}
   .report-sub{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin:14px 0 10px;}
   .report-sub:first-child{margin-top:0;}
@@ -104,9 +105,9 @@
   .alerts{display:grid;gap:10px;}
   .alert{border-radius:9px;padding:12px 16px;font-size:14px;border:1px solid;display:flex;gap:10px;align-items:flex-start;}
   .alert .ico{font-size:16px;line-height:1.3;}
-  .alert.critical{background:var(--red-bg);border-color:#F0AAAA;color:#7A1F1F;}
-  .alert.warning{background:var(--amber-bg);border-color:#EAC97A;color:#5E3906;}
-  .alert.ok{background:var(--green-bg);border-color:#B9D98A;color:#2A4D0C;}
+  .alert.critical{background:var(--red-bg);border-color:#F4B6B3;color:#9A1410;}
+  .alert.warning{background:var(--amber-bg);border-color:#EAD08A;color:#6E4D00;}
+  .alert.ok{background:var(--green-bg);border-color:#B9D9A8;color:#1F5022;}
   .alert b{font-weight:700;}
 
   .chart-box{position:relative;height:300px;width:100%;}
@@ -122,12 +123,12 @@
   tbody td{padding:7px 8px;text-align:center;border:1px solid var(--line);white-space:nowrap;}
   tbody td:first-child{text-align:left;font-weight:700;color:var(--navy);}
   tbody td:nth-child(2){text-align:left;color:var(--muted);}
-  tbody tr.today{background:#EBF5FB;}
+  tbody tr.today{background:#EAEEFB;}
   tbody tr.today td:first-child{color:var(--navy);}
   tbody tr.wknd td{background:#FAFAF7;}
-  tbody tr.today.wknd td{background:#EBF5FB;}
+  tbody tr.today.wknd td{background:#EAEEFB;}
   .we{font-size:9px;color:var(--muted);background:#EDEFF2;padding:1px 4px;border-radius:4px;margin-left:4px;}
-  .rp{font-size:10px;color:#1E5C99;margin-left:3px;}
+  .rp{font-size:10px;color:var(--navy2);margin-left:3px;}
 
   .tabs{background:#fff;border-bottom:1px solid var(--line);display:flex;gap:4px;padding:0 16px;
     position:sticky;top:0;z-index:20;max-width:1180px;margin:0 auto;}
@@ -144,16 +145,16 @@
   .dash-note{font-size:12.5px;color:var(--text);background:var(--bg);border-radius:8px;
     padding:11px 14px;margin-top:12px;line-height:1.5;}
   .badge-type{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;}
-  .badge-type.act{background:#E6EEF7;color:var(--navy);}
-  .badge-type.fc{background:#F1ECDA;color:#9A7B12;}
+  .badge-type.act{background:#E2E8FA;color:var(--navy);}
+  .badge-type.fc{background:#FCF1D6;color:#8A5A00;}
   .metric .mv.big{font-size:26px;}
   .sec-hint{font-size:10px;font-weight:500;color:var(--muted);letter-spacing:0;text-transform:none;}
   .mini-alert{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:10px 14px;border-radius:9px;
     font-size:13px;border:1px solid;line-height:1.45;}
   .mini-alert .ico{font-size:15px;line-height:1.3;flex-shrink:0;}
-  .mini-alert.critical{background:var(--red-bg);border-color:#F0AAAA;color:#7A1F1F;}
-  .mini-alert.warning{background:var(--amber-bg);border-color:#EAC97A;color:#5E3906;}
-  .mini-alert.ok{background:var(--green-bg);border-color:#B9D98A;color:#2A4D0C;}
+  .mini-alert.critical{background:var(--red-bg);border-color:#F4B6B3;color:#9A1410;}
+  .mini-alert.warning{background:var(--amber-bg);border-color:#EAD08A;color:#6E4D00;}
+  .mini-alert.ok{background:var(--green-bg);border-color:#B9D9A8;color:#1F5022;}
   .mini-alert b{font-weight:700;}
   section{padding:15px 18px;margin-top:14px;}
   .chart-box{height:240px;}
@@ -170,8 +171,7 @@
   .btn.ghost{background:#fff;color:var(--navy);}
   .btn.ghost:hover{background:var(--bg);}
 
-
-  .filebox{margin-top:10px;border:1px dashed #C9D4E1;border-radius:8px;padding:10px;background:#F8FAFC;}
+  .filebox{margin-top:10px;border:1px dashed #B7C2EA;border-radius:8px;padding:10px;background:#F7F9FE;}
   .filebox label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;}
   .filebox input[type=file]{width:100%;font-size:11.5px;color:var(--muted);}
   .file-status{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.35;}
@@ -179,7 +179,7 @@
   .file-status.err{color:var(--red);font-weight:600;}
 
   .daysrow{display:flex;align-items:center;gap:12px;margin-top:4px;}
-  .daysrow input[type=range]{flex:1;}
+  .daysrow input[type=range]{flex:1;accent-color:var(--navy);}
   @media(max-width:600px){.topbar{flex-direction:column;gap:8px;align-items:flex-start;}}
 </style>
 </head>
@@ -258,9 +258,11 @@
     </div>
     <div class="opt-row">
       <button class="btn-opt" id="optBtn" onclick="compute()">📈 Generate Daily Projection</button>
+      <button class="btn-opt" id="stratBtn" onclick="generateStrategy()" style="background:linear-gradient(90deg,var(--red),#C2150F)">🎯 Generate Ideal Strategy</button>
       <span class="opt-status" id="optStatus">MSL daily inbound/outbound is locked from Rock YOR forecast, filtered to IDJKTSS and year 2026.</span>
     </div>
     <div id="idealOut"></div>
+    <div id="stratOut"></div>
   </section>
 
   <!-- LIVE SNAPSHOT -->
@@ -274,9 +276,9 @@
   <section>
     <div class="sec-title"><span class="bar"></span>YOR recovery projection</div>
     <div class="legend">
-      <span><i style="background:#378ADD;"></i>Empty YOR</span>
-      <span><i style="background:#D85A30;"></i>Laden YOR</span>
-      <span><i style="background:#3B6D11;"></i>Target</span>
+      <span><i style="background:var(--navy2);"></i>Premium YOR</span>
+      <span><i style="background:var(--red);"></i>Laden YOR</span>
+      <span><i style="background:var(--gold);"></i>Target</span>
     </div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
   </section>
@@ -288,7 +290,7 @@
       <table>
         <thead><tr>
           <th>Day</th><th>Date</th>
-          <th>Premium Stock</th><th>MSL IN</th><th>MSL OUT</th><th>Another MSL IN</th><th>Another MSL OUT</th><th>REPO</th><th>Empty YOR%</th><th>Net (E)</th>
+          <th>Premium Stock</th><th>MSL IN</th><th>MSL OUT</th><th>Another MSL IN</th><th>Another MSL OUT</th><th>REPO</th><th>Premium YOR%</th><th>Net (E)</th>
           <th>Laden Stock</th><th>Laden IN</th><th>Laden OUT</th><th>Net (L)</th><th>Laden YOR%</th>
         </tr></thead>
         <tbody id="tbody"></tbody>
@@ -388,9 +390,9 @@
   <section>
     <div class="sec-title"><span class="bar"></span>Weekly YOR recovery projection</div>
     <div class="legend">
-      <span><i style="background:#378ADD;"></i>Empty YOR</span>
-      <span><i style="background:#D85A30;"></i>Laden YOR</span>
-      <span><i style="background:#3B6D11;"></i>Target</span>
+      <span><i style="background:var(--navy2);"></i>Premium YOR</span>
+      <span><i style="background:var(--red);"></i>Laden YOR</span>
+      <span><i style="background:var(--gold);"></i>Target</span>
     </div>
     <div class="chart-box"><canvas id="weekChartCanvas"></canvas></div>
   </section>
@@ -400,7 +402,7 @@
     <div class="table-scroll">
       <table>
         <thead><tr>
-          <th>Week</th><th>Premium Stock</th><th>MSL IN</th><th>MSL OUT</th><th>Another MSL IN</th><th>Another MSL OUT</th><th>REPO</th><th>Empty YOR%</th><th>Net (E)</th>
+          <th>Week</th><th>Premium Stock</th><th>MSL IN</th><th>MSL OUT</th><th>Another MSL IN</th><th>Another MSL OUT</th><th>REPO</th><th>Premium YOR%</th><th>Net (E)</th>
           <th>Laden Stock</th><th>Laden IN</th><th>Laden OUT</th><th>Net (L)</th><th>Laden YOR%</th>
         </tr></thead>
         <tbody id="weekBody"></tbody>
@@ -454,9 +456,9 @@
   <section>
     <div class="sec-title"><span class="bar"></span>Forecast YOR trajectory (sheet forecast)</div>
     <div class="legend">
-      <span><i style="background:#378ADD;"></i>Empty YOR</span>
-      <span><i style="background:#D85A30;"></i>Laden YOR</span>
-      <span><i style="background:#3B6D11;"></i>Target</span>
+      <span><i style="background:var(--navy2);"></i>Premium YOR</span>
+      <span><i style="background:var(--red);"></i>Laden YOR</span>
+      <span><i style="background:var(--gold);"></i>Target</span>
       <span><i style="background:#B0B6BF;"></i>Actual / Forecast split</span>
     </div>
     <div class="chart-box"><canvas id="dashChart"></canvas></div>
@@ -484,7 +486,7 @@
 </div>
 
 <script>
-const DEFAULTS = {eStock:16268,lStock:1597,eAvStock:0,eDmStock:0,eCap:12988,lCap:1300,target:80,repairCap:0,avInPct:70,dmInPct:30,eMaxOut:900,lMaxOut:270,wf:1,eIn:0,eOut:0,eRepo:0,lIn:120,lOut:150,eRev:500000,lRev:115000,days:14,wEStock:16268,wLStock:1597,wAvStock:0,wDmStock:0,wECap:12988,wLCap:1300,wTarget:80,wRepairCap:0,wAvInPct:70,wDmInPct:30,wEIn:0,wEOut:0,wERepo:0,wLIn:840,wLOut:1050,wERev:500000,wLRev:115000,wDays:8};
+const DEFAULTS = {eStock:16268,lStock:1597,eAvStock:0,eDmStock:0,eCap:12988,lCap:1300,target:80,repairCap:270,avInPct:48.43,dmInPct:51.57,eMaxOut:900,lMaxOut:270,wf:1,eIn:0,eOut:0,eRepo:0,lIn:120,lOut:150,eRev:500000,lRev:115000,days:14,wEStock:16268,wLStock:1597,wAvStock:0,wDmStock:0,wECap:12988,wLCap:1300,wTarget:80,wRepairCap:0,wAvInPct:48.43,wDmInPct:51.57,wEIn:0,wEOut:0,wERepo:0,wLIn:840,wLOut:1050,wERev:500000,wLRev:115000,wDays:8};
 const ROCK_DAILY = {"2026-01-01":{"in":0,"out":0},"2026-01-02":{"in":892,"out":368},"2026-01-03":{"in":902,"out":371},"2026-01-04":{"in":242,"out":201},"2026-01-05":{"in":625,"out":501},"2026-01-06":{"in":622,"out":756},"2026-01-07":{"in":792,"out":752},"2026-01-08":{"in":1057,"out":511},"2026-01-09":{"in":1101,"out":578},"2026-01-10":{"in":920,"out":471},"2026-01-11":{"in":290,"out":162},"2026-01-12":{"in":375,"out":230},"2026-01-13":{"in":889,"out":1104},"2026-01-14":{"in":944,"out":956},"2026-01-15":{"in":782,"out":738},"2026-01-16":{"in":768,"out":398},"2026-01-17":{"in":797,"out":345},"2026-01-18":{"in":234,"out":116},"2026-01-19":{"in":732,"out":395},"2026-01-20":{"in":971,"out":736},"2026-01-21":{"in":840,"out":676},"2026-01-22":{"in":685,"out":565},"2026-01-23":{"in":888,"out":652},"2026-01-24":{"in":1141,"out":661},"2026-01-25":{"in":296,"out":267},"2026-01-26":{"in":606,"out":657},"2026-01-27":{"in":507,"out":1002},"2026-01-28":{"in":613,"out":839},"2026-01-29":{"in":506,"out":605},"2026-01-30":{"in":329,"out":421},"2026-01-31":{"in":733,"out":501},"2026-02-01":{"in":283,"out":155},"2026-02-02":{"in":1002,"out":501},"2026-02-03":{"in":1055,"out":769},"2026-02-04":{"in":811,"out":699},"2026-02-05":{"in":759,"out":611},"2026-02-06":{"in":791,"out":450},"2026-02-07":{"in":996,"out":360},"2026-02-08":{"in":366,"out":259},"2026-02-09":{"in":744,"out":455},"2026-02-10":{"in":652,"out":962},"2026-02-11":{"in":583,"out":781},"2026-02-12":{"in":478,"out":621},"2026-02-13":{"in":710,"out":587},"2026-02-14":{"in":800,"out":490},"2026-02-15":{"in":207,"out":283},"2026-02-16":{"in":379,"out":535},"2026-02-17":{"in":272,"out":391},"2026-02-18":{"in":347,"out":608},"2026-02-19":{"in":571,"out":577},"2026-02-20":{"in":593,"out":517},"2026-02-21":{"in":800,"out":621},"2026-02-22":{"in":198,"out":294},"2026-02-23":{"in":445,"out":712},"2026-02-24":{"in":670,"out":1119},"2026-02-25":{"in":658,"out":1053},"2026-02-26":{"in":466,"out":770},"2026-02-27":{"in":520,"out":793},"2026-02-28":{"in":894,"out":461},"2026-03-01":{"in":283,"out":160},"2026-03-02":{"in":686,"out":385},"2026-03-03":{"in":682,"out":603},"2026-03-04":{"in":526,"out":808},"2026-03-05":{"in":528,"out":831},"2026-03-06":{"in":835,"out":672},"2026-03-07":{"in":1053,"out":757},"2026-03-08":{"in":393,"out":389},"2026-03-09":{"in":631,"out":540},"2026-03-10":{"in":567,"out":933},"2026-03-11":{"in":579,"out":939},"2026-03-12":{"in":577,"out":1009},"2026-03-13":{"in":660,"out":626},"2026-03-14":{"in":884,"out":775},"2026-03-15":{"in":374,"out":248},"2026-03-16":{"in":334,"out":435},"2026-03-17":{"in":424,"out":436},"2026-03-18":{"in":252,"out":356},"2026-03-19":{"in":166,"out":193},"2026-03-20":{"in":30,"out":10},"2026-03-21":{"in":0,"out":6},"2026-03-22":{"in":16,"out":4},"2026-03-23":{"in":48,"out":116},"2026-03-24":{"in":84,"out":161},"2026-03-25":{"in":272,"out":296},"2026-03-26":{"in":502,"out":557},"2026-03-27":{"in":582,"out":505},"2026-03-28":{"in":411,"out":426},"2026-03-29":{"in":115,"out":308},"2026-03-30":{"in":383,"out":630},"2026-03-31":{"in":322,"out":649},"2026-04-01":{"in":435,"out":689},"2026-04-02":{"in":663,"out":702},"2026-04-03":{"in":546,"out":331},"2026-04-04":{"in":823,"out":493},"2026-04-05":{"in":391,"out":319},"2026-04-06":{"in":620,"out":633},"2026-04-07":{"in":640,"out":713},"2026-04-08":{"in":569,"out":478},"2026-04-09":{"in":615,"out":276},"2026-04-10":{"in":668,"out":271},"2026-04-11":{"in":637,"out":580},"2026-04-12":{"in":313,"out":378},"2026-04-13":{"in":715,"out":705},"2026-04-14":{"in":845,"out":959},"2026-04-15":{"in":765,"out":585},"2026-04-16":{"in":678,"out":671},"2026-04-17":{"in":579,"out":595},"2026-04-18":{"in":619,"out":585},"2026-04-19":{"in":114,"out":239},"2026-04-20":{"in":436,"out":409},"2026-04-21":{"in":537,"out":668},"2026-04-22":{"in":649,"out":598},"2026-04-23":{"in":499,"out":648},"2026-04-24":{"in":346,"out":528},"2026-04-25":{"in":500,"out":532},"2026-04-26":{"in":291,"out":365},"2026-04-27":{"in":469,"out":559},"2026-04-28":{"in":589,"out":556},"2026-04-29":{"in":758,"out":435},"2026-04-30":{"in":962,"out":408},"2026-05-01":{"in":952,"out":219},"2026-05-02":{"in":925,"out":270},"2026-05-03":{"in":303,"out":234},"2026-05-04":{"in":749,"out":397},"2026-05-05":{"in":1237,"out":683},"2026-05-06":{"in":1169,"out":583},"2026-05-07":{"in":925,"out":223},"2026-05-08":{"in":809,"out":298},"2026-05-09":{"in":690,"out":244},"2026-05-10":{"in":458,"out":89},"2026-05-11":{"in":571,"out":339},"2026-05-12":{"in":643,"out":794},"2026-05-13":{"in":834,"out":730},"2026-05-14":{"in":515,"out":632},"2026-05-15":{"in":874,"out":385},"2026-05-16":{"in":1046,"out":497},"2026-05-17":{"in":475,"out":67},"2026-05-18":{"in":839,"out":295},"2026-05-19":{"in":928,"out":363},"2026-05-20":{"in":1097,"out":471},"2026-05-21":{"in":1060,"out":329},"2026-05-22":{"in":976,"out":472},"2026-05-23":{"in":958,"out":445},"2026-05-24":{"in":328,"out":241},"2026-05-25":{"in":556,"out":389},"2026-05-26":{"in":572,"out":789},"2026-05-27":{"in":129,"out":345},"2026-05-28":{"in":416,"out":657},"2026-05-29":{"in":487,"out":798},"2026-05-30":{"in":611,"out":713},"2026-05-31":{"in":217,"out":272},"2026-06-01":{"in":243,"out":317},"2026-06-02":{"in":304,"out":530},"2026-06-03":{"in":639,"out":921},"2026-06-04":{"in":806,"out":825},"2026-06-05":{"in":809,"out":518},"2026-06-06":{"in":1023,"out":465},"2026-06-07":{"in":353,"out":326},"2026-06-08":{"in":886,"out":515},"2026-06-09":{"in":787,"out":624},"2026-06-10":{"in":723,"out":621},"2026-06-11":{"in":893,"out":510},"2026-06-12":{"in":763,"out":507},"2026-06-13":{"in":983,"out":411},"2026-06-14":{"in":246,"out":183},"2026-06-15":{"in":537,"out":626},"2026-06-16":{"in":702,"out":884},"2026-06-17":{"in":713,"out":829},"2026-06-18":{"in":735,"out":738},"2026-06-19":{"in":746,"out":601},"2026-06-20":{"in":870,"out":618},"2026-06-21":{"in":318,"out":297},"2026-06-22":{"in":623,"out":612},"2026-06-23":{"in":707,"out":868},"2026-06-24":{"in":722,"out":819},"2026-06-25":{"in":743,"out":726},"2026-06-26":{"in":750,"out":576},"2026-06-27":{"in":875,"out":616},"2026-06-28":{"in":321,"out":296},"2026-06-29":{"in":663,"out":486},"2026-06-30":{"in":752,"out":697},"2026-07-01":{"in":772,"out":654},"2026-07-02":{"in":793,"out":607},"2026-07-03":{"in":801,"out":495},"2026-07-04":{"in":935,"out":506},"2026-07-05":{"in":342,"out":242},"2026-07-06":{"in":698,"out":482},"2026-07-07":{"in":792,"out":691},"2026-07-08":{"in":811,"out":647},"2026-07-09":{"in":832,"out":600},"2026-07-10":{"in":837,"out":491},"2026-07-11":{"in":984,"out":501},"2026-07-12":{"in":360,"out":238},"2026-07-13":{"in":616,"out":506},"2026-07-14":{"in":699,"out":724},"2026-07-15":{"in":715,"out":681},"2026-07-16":{"in":733,"out":633},"2026-07-17":{"in":741,"out":517},"2026-07-18":{"in":861,"out":525},"2026-07-19":{"in":315,"out":250},"2026-07-20":{"in":591,"out":522},"2026-07-21":{"in":671,"out":747},"2026-07-22":{"in":684,"out":698},"2026-07-23":{"in":704,"out":647},"2026-07-24":{"in":712,"out":530},"2026-07-25":{"in":826,"out":540},"2026-07-26":{"in":303,"out":257},"2026-07-27":{"in":639,"out":497},"2026-07-28":{"in":723,"out":713},"2026-07-29":{"in":737,"out":668},"2026-07-30":{"in":761,"out":620},"2026-07-31":{"in":769,"out":506},"2026-08-01":{"in":893,"out":516},"2026-08-02":{"in":329,"out":247},"2026-08-03":{"in":643,"out":478},"2026-08-04":{"in":725,"out":684},"2026-08-05":{"in":743,"out":643},"2026-08-06":{"in":764,"out":596},"2026-08-07":{"in":774,"out":487},"2026-08-08":{"in":899,"out":499},"2026-08-09":{"in":330,"out":236},"2026-08-10":{"in":659,"out":495},"2026-08-11":{"in":746,"out":708},"2026-08-12":{"in":759,"out":668},"2026-08-13":{"in":784,"out":620},"2026-08-14":{"in":793,"out":504},"2026-08-15":{"in":922,"out":514},"2026-08-16":{"in":339,"out":245},"2026-08-17":{"in":636,"out":514},"2026-08-18":{"in":720,"out":739},"2026-08-19":{"in":734,"out":697},"2026-08-20":{"in":757,"out":648},"2026-08-21":{"in":762,"out":526},"2026-08-22":{"in":886,"out":540},"2026-08-23":{"in":324,"out":258},"2026-08-24":{"in":639,"out":531},"2026-08-25":{"in":717,"out":761},"2026-08-26":{"in":733,"out":720},"2026-08-27":{"in":759,"out":663},"2026-08-28":{"in":763,"out":544},"2026-08-29":{"in":892,"out":556},"2026-08-30":{"in":327,"out":262},"2026-08-31":{"in":597,"out":471},"2026-09-01":{"in":679,"out":677},"2026-09-02":{"in":690,"out":636},"2026-09-03":{"in":713,"out":591},"2026-09-04":{"in":714,"out":481},"2026-09-05":{"in":838,"out":493},"2026-09-06":{"in":305,"out":232},"2026-09-07":{"in":604,"out":459},"2026-09-08":{"in":681,"out":660},"2026-09-09":{"in":696,"out":621},"2026-09-10":{"in":718,"out":577},"2026-09-11":{"in":726,"out":471},"2026-09-12":{"in":839,"out":481},"2026-09-13":{"in":309,"out":227},"2026-09-14":{"in":0,"out":0},"2026-09-15":{"in":0,"out":0},"2026-09-16":{"in":0,"out":0},"2026-09-17":{"in":0,"out":0},"2026-09-18":{"in":0,"out":0},"2026-09-19":{"in":0,"out":0},"2026-09-20":{"in":0,"out":0},"2026-09-21":{"in":0,"out":0},"2026-09-22":{"in":0,"out":0},"2026-09-23":{"in":0,"out":0},"2026-09-24":{"in":0,"out":0},"2026-09-25":{"in":0,"out":0},"2026-09-26":{"in":0,"out":0},"2026-09-27":{"in":0,"out":0},"2026-09-28":{"in":0,"out":0},"2026-09-29":{"in":0,"out":0},"2026-09-30":{"in":0,"out":0},"2026-10-01":{"in":0,"out":0},"2026-10-02":{"in":0,"out":0},"2026-10-03":{"in":0,"out":0},"2026-10-04":{"in":0,"out":0},"2026-10-05":{"in":0,"out":0},"2026-10-06":{"in":0,"out":0},"2026-10-07":{"in":0,"out":0},"2026-10-08":{"in":0,"out":0},"2026-10-09":{"in":0,"out":0},"2026-10-10":{"in":0,"out":0},"2026-10-11":{"in":0,"out":0},"2026-10-12":{"in":0,"out":0},"2026-10-13":{"in":0,"out":0},"2026-10-14":{"in":0,"out":0},"2026-10-15":{"in":0,"out":0},"2026-10-16":{"in":0,"out":0},"2026-10-17":{"in":0,"out":0},"2026-10-18":{"in":0,"out":0},"2026-10-19":{"in":0,"out":0},"2026-10-20":{"in":0,"out":0},"2026-10-21":{"in":0,"out":0},"2026-10-22":{"in":0,"out":0},"2026-10-23":{"in":0,"out":0},"2026-10-24":{"in":0,"out":0},"2026-10-25":{"in":0,"out":0},"2026-10-26":{"in":0,"out":0},"2026-10-27":{"in":0,"out":0},"2026-10-28":{"in":0,"out":0},"2026-10-29":{"in":0,"out":0},"2026-10-30":{"in":0,"out":0},"2026-10-31":{"in":0,"out":0},"2026-11-01":{"in":0,"out":0},"2026-11-02":{"in":0,"out":0},"2026-11-03":{"in":0,"out":0},"2026-11-04":{"in":0,"out":0},"2026-11-05":{"in":0,"out":0},"2026-11-06":{"in":0,"out":0},"2026-11-07":{"in":0,"out":0},"2026-11-08":{"in":0,"out":0},"2026-11-09":{"in":0,"out":0},"2026-11-10":{"in":0,"out":0},"2026-11-11":{"in":0,"out":0},"2026-11-12":{"in":0,"out":0},"2026-11-13":{"in":0,"out":0},"2026-11-14":{"in":0,"out":0},"2026-11-15":{"in":0,"out":0},"2026-11-16":{"in":0,"out":0},"2026-11-17":{"in":0,"out":0},"2026-11-18":{"in":0,"out":0},"2026-11-19":{"in":0,"out":0},"2026-11-20":{"in":0,"out":0},"2026-11-21":{"in":0,"out":0},"2026-11-22":{"in":0,"out":0},"2026-11-23":{"in":0,"out":0},"2026-11-24":{"in":0,"out":0},"2026-11-25":{"in":0,"out":0},"2026-11-26":{"in":0,"out":0},"2026-11-27":{"in":0,"out":0},"2026-11-28":{"in":0,"out":0},"2026-11-29":{"in":0,"out":0},"2026-11-30":{"in":0,"out":0},"2026-12-01":{"in":0,"out":0},"2026-12-02":{"in":0,"out":0},"2026-12-03":{"in":0,"out":0},"2026-12-04":{"in":0,"out":0},"2026-12-05":{"in":0,"out":0},"2026-12-06":{"in":0,"out":0},"2026-12-07":{"in":0,"out":0},"2026-12-08":{"in":0,"out":0},"2026-12-09":{"in":0,"out":0},"2026-12-10":{"in":0,"out":0},"2026-12-11":{"in":0,"out":0},"2026-12-12":{"in":0,"out":0},"2026-12-13":{"in":0,"out":0},"2026-12-14":{"in":0,"out":0},"2026-12-15":{"in":0,"out":0},"2026-12-16":{"in":0,"out":0},"2026-12-17":{"in":0,"out":0},"2026-12-18":{"in":0,"out":0},"2026-12-19":{"in":0,"out":0},"2026-12-20":{"in":0,"out":0},"2026-12-21":{"in":0,"out":0},"2026-12-22":{"in":0,"out":0},"2026-12-23":{"in":0,"out":0},"2026-12-24":{"in":0,"out":0},"2026-12-25":{"in":0,"out":0},"2026-12-26":{"in":0,"out":0},"2026-12-27":{"in":0,"out":0},"2026-12-28":{"in":0,"out":0},"2026-12-29":{"in":0,"out":0},"2026-12-30":{"in":0,"out":0},"2026-12-31":{"in":0,"out":0}};
 const ROCK_WEEKLY = {"1":{"in":2036,"out":940},"2":{"in":5407,"out":3731},"3":{"in":4789,"out":3887},"4":{"in":5553,"out":3952},"5":{"in":3577,"out":4180},"6":{"in":5780,"out":3649},"7":{"in":4174,"out":4179},"8":{"in":3160,"out":3543},"9":{"in":3936,"out":5068},"10":{"in":4703,"out":4445},"11":{"in":4272,"out":5070},"12":{"in":1222,"out":1440},"13":{"in":2014,"out":2369},"14":{"in":3563,"out":3813},"15":{"in":4062,"out":3329},"16":{"in":4315,"out":4339},"17":{"in":3258,"out":3748},"18":{"in":4958,"out":2681},"19":{"in":6037,"out":2517},"20":{"in":4958,"out":3444},"21":{"in":6186,"out":2616},"22":{"in":2988,"out":3963},"23":{"in":4177,"out":3902},"24":{"in":5281,"out":3371},"25":{"in":4621,"out":4593},"26":{"in":4741,"out":4513},"27":{"in":5058,"out":3687},"28":{"in":5314,"out":3650},"29":{"in":4680,"out":3836},"30":{"in":4491,"out":3941},"31":{"in":4851,"out":3767},"32":{"in":4878,"out":3623},"33":{"in":5002,"out":3754},"34":{"in":4819,"out":3922},"35":{"in":4830,"out":4037},"36":{"in":4536,"out":3581},"37":{"in":4573,"out":3496},"38":{"in":0,"out":0},"39":{"in":0,"out":0},"40":{"in":0,"out":0},"41":{"in":0,"out":0},"42":{"in":0,"out":0},"43":{"in":0,"out":0},"44":{"in":0,"out":0},"45":{"in":0,"out":0},"46":{"in":0,"out":0},"47":{"in":0,"out":0},"48":{"in":0,"out":0},"49":{"in":0,"out":0},"50":{"in":0,"out":0},"51":{"in":0,"out":0},"52":{"in":0,"out":0},"53":{"in":0,"out":0}};
 const ROCK_DATE_WEEK = {"2026-01-01":1,"2026-01-02":1,"2026-01-03":1,"2026-01-04":1,"2026-01-05":2,"2026-01-06":2,"2026-01-07":2,"2026-01-08":2,"2026-01-09":2,"2026-01-10":2,"2026-01-11":2,"2026-01-12":3,"2026-01-13":3,"2026-01-14":3,"2026-01-15":3,"2026-01-16":3,"2026-01-17":3,"2026-01-18":3,"2026-01-19":4,"2026-01-20":4,"2026-01-21":4,"2026-01-22":4,"2026-01-23":4,"2026-01-24":4,"2026-01-25":4,"2026-01-26":5,"2026-01-27":5,"2026-01-28":5,"2026-01-29":5,"2026-01-30":5,"2026-01-31":5,"2026-02-01":5,"2026-02-02":6,"2026-02-03":6,"2026-02-04":6,"2026-02-05":6,"2026-02-06":6,"2026-02-07":6,"2026-02-08":6,"2026-02-09":7,"2026-02-10":7,"2026-02-11":7,"2026-02-12":7,"2026-02-13":7,"2026-02-14":7,"2026-02-15":7,"2026-02-16":8,"2026-02-17":8,"2026-02-18":8,"2026-02-19":8,"2026-02-20":8,"2026-02-21":8,"2026-02-22":8,"2026-02-23":9,"2026-02-24":9,"2026-02-25":9,"2026-02-26":9,"2026-02-27":9,"2026-02-28":9,"2026-03-01":9,"2026-03-02":10,"2026-03-03":10,"2026-03-04":10,"2026-03-05":10,"2026-03-06":10,"2026-03-07":10,"2026-03-08":10,"2026-03-09":11,"2026-03-10":11,"2026-03-11":11,"2026-03-12":11,"2026-03-13":11,"2026-03-14":11,"2026-03-15":11,"2026-03-16":12,"2026-03-17":12,"2026-03-18":12,"2026-03-19":12,"2026-03-20":12,"2026-03-21":12,"2026-03-22":12,"2026-03-23":13,"2026-03-24":13,"2026-03-25":13,"2026-03-26":13,"2026-03-27":13,"2026-03-28":13,"2026-03-29":13,"2026-03-30":14,"2026-03-31":14,"2026-04-01":14,"2026-04-02":14,"2026-04-03":14,"2026-04-04":14,"2026-04-05":14,"2026-04-06":15,"2026-04-07":15,"2026-04-08":15,"2026-04-09":15,"2026-04-10":15,"2026-04-11":15,"2026-04-12":15,"2026-04-13":16,"2026-04-14":16,"2026-04-15":16,"2026-04-16":16,"2026-04-17":16,"2026-04-18":16,"2026-04-19":16,"2026-04-20":17,"2026-04-21":17,"2026-04-22":17,"2026-04-23":17,"2026-04-24":17,"2026-04-25":17,"2026-04-26":17,"2026-04-27":18,"2026-04-28":18,"2026-04-29":18,"2026-04-30":18,"2026-05-01":18,"2026-05-02":18,"2026-05-03":18,"2026-05-04":19,"2026-05-05":19,"2026-05-06":19,"2026-05-07":19,"2026-05-08":19,"2026-05-09":19,"2026-05-10":19,"2026-05-11":20,"2026-05-12":20,"2026-05-13":20,"2026-05-14":20,"2026-05-15":20,"2026-05-16":20,"2026-05-17":20,"2026-05-18":21,"2026-05-19":21,"2026-05-20":21,"2026-05-21":21,"2026-05-22":21,"2026-05-23":21,"2026-05-24":21,"2026-05-25":22,"2026-05-26":22,"2026-05-27":22,"2026-05-28":22,"2026-05-29":22,"2026-05-30":22,"2026-05-31":22,"2026-06-01":23,"2026-06-02":23,"2026-06-03":23,"2026-06-04":23,"2026-06-05":23,"2026-06-06":23,"2026-06-07":23,"2026-06-08":24,"2026-06-09":24,"2026-06-10":24,"2026-06-11":24,"2026-06-12":24,"2026-06-13":24,"2026-06-14":24,"2026-06-15":25,"2026-06-16":25,"2026-06-17":25,"2026-06-18":25,"2026-06-19":25,"2026-06-20":25,"2026-06-21":25,"2026-06-22":26,"2026-06-23":26,"2026-06-24":26,"2026-06-25":26,"2026-06-26":26,"2026-06-27":26,"2026-06-28":26,"2026-06-29":27,"2026-06-30":27,"2026-07-01":27,"2026-07-02":27,"2026-07-03":27,"2026-07-04":27,"2026-07-05":27,"2026-07-06":28,"2026-07-07":28,"2026-07-08":28,"2026-07-09":28,"2026-07-10":28,"2026-07-11":28,"2026-07-12":28,"2026-07-13":29,"2026-07-14":29,"2026-07-15":29,"2026-07-16":29,"2026-07-17":29,"2026-07-18":29,"2026-07-19":29,"2026-07-20":30,"2026-07-21":30,"2026-07-22":30,"2026-07-23":30,"2026-07-24":30,"2026-07-25":30,"2026-07-26":30,"2026-07-27":31,"2026-07-28":31,"2026-07-29":31,"2026-07-30":31,"2026-07-31":31,"2026-08-01":31,"2026-08-02":31,"2026-08-03":32,"2026-08-04":32,"2026-08-05":32,"2026-08-06":32,"2026-08-07":32,"2026-08-08":32,"2026-08-09":32,"2026-08-10":33,"2026-08-11":33,"2026-08-12":33,"2026-08-13":33,"2026-08-14":33,"2026-08-15":33,"2026-08-16":33,"2026-08-17":34,"2026-08-18":34,"2026-08-19":34,"2026-08-20":34,"2026-08-21":34,"2026-08-22":34,"2026-08-23":34,"2026-08-24":35,"2026-08-25":35,"2026-08-26":35,"2026-08-27":35,"2026-08-28":35,"2026-08-29":35,"2026-08-30":35,"2026-08-31":36,"2026-09-01":36,"2026-09-02":36,"2026-09-03":36,"2026-09-04":36,"2026-09-05":36,"2026-09-06":36,"2026-09-07":37,"2026-09-08":37,"2026-09-09":37,"2026-09-10":37,"2026-09-11":37,"2026-09-12":37,"2026-09-13":37,"2026-09-14":38,"2026-09-15":38,"2026-09-16":38,"2026-09-17":38,"2026-09-18":38,"2026-09-19":38,"2026-09-20":38,"2026-09-21":39,"2026-09-22":39,"2026-09-23":39,"2026-09-24":39,"2026-09-25":39,"2026-09-26":39,"2026-09-27":39,"2026-09-28":40,"2026-09-29":40,"2026-09-30":40,"2026-10-01":40,"2026-10-02":40,"2026-10-03":40,"2026-10-04":40,"2026-10-05":41,"2026-10-06":41,"2026-10-07":41,"2026-10-08":41,"2026-10-09":41,"2026-10-10":41,"2026-10-11":41,"2026-10-12":42,"2026-10-13":42,"2026-10-14":42,"2026-10-15":42,"2026-10-16":42,"2026-10-17":42,"2026-10-18":42,"2026-10-19":43,"2026-10-20":43,"2026-10-21":43,"2026-10-22":43,"2026-10-23":43,"2026-10-24":43,"2026-10-25":43,"2026-10-26":44,"2026-10-27":44,"2026-10-28":44,"2026-10-29":44,"2026-10-30":44,"2026-10-31":44,"2026-11-01":44,"2026-11-02":45,"2026-11-03":45,"2026-11-04":45,"2026-11-05":45,"2026-11-06":45,"2026-11-07":45,"2026-11-08":45,"2026-11-09":46,"2026-11-10":46,"2026-11-11":46,"2026-11-12":46,"2026-11-13":46,"2026-11-14":46,"2026-11-15":46,"2026-11-16":47,"2026-11-17":47,"2026-11-18":47,"2026-11-19":47,"2026-11-20":47,"2026-11-21":47,"2026-11-22":47,"2026-11-23":48,"2026-11-24":48,"2026-11-25":48,"2026-11-26":48,"2026-11-27":48,"2026-11-28":48,"2026-11-29":48,"2026-11-30":49,"2026-12-01":49,"2026-12-02":49,"2026-12-03":49,"2026-12-04":49,"2026-12-05":49,"2026-12-06":49,"2026-12-07":50,"2026-12-08":50,"2026-12-09":50,"2026-12-10":50,"2026-12-11":50,"2026-12-12":50,"2026-12-13":50,"2026-12-14":51,"2026-12-15":51,"2026-12-16":51,"2026-12-17":51,"2026-12-18":51,"2026-12-19":51,"2026-12-20":51,"2026-12-21":52,"2026-12-22":52,"2026-12-23":52,"2026-12-24":52,"2026-12-25":52,"2026-12-26":52,"2026-12-27":52,"2026-12-28":53,"2026-12-29":53,"2026-12-30":53,"2026-12-31":53};
@@ -508,8 +510,6 @@ function dFull(d){return d.toLocaleDateString('en-GB',{day:'2-digit',month:'shor
 
 function isWeekend(d){const g=d.getDay();return g===0||g===6;}
 
-// Simulate day-by-day with weekend seasonality; returns calendar days to reach target.
-// weekdayNet = full weekday net drain (out + repo - in). Weekends scaled by wf.
 function simRecoveryDays(stock,target,weekdayNet,wf,start){
   if(stock<=target) return 0;
   if(weekdayNet<=0) return Infinity;
@@ -528,7 +528,7 @@ function keyDate(d){
 }
 function simBaseDate(){
   const d=new Date(); d.setHours(0,0,0,0);
-  if(d.getFullYear()!==2026) return new Date(2026,5,16); // fallback to prompt example date
+  if(d.getFullYear()!==2026) return new Date(2026,5,16);
   return d;
 }
 function rockDailyForDate(d){
@@ -545,7 +545,6 @@ function rockWeekForDate(d){
   const k=keyDate(d);
   const src=USER_ROCK_DATE_WEEK || ROCK_DATE_WEEK;
   if(src[k]) return src[k];
-  // fallback ISO week, only used when the exact date is not in Rock YOR
   return isoWeekNumber(d);
 }
 function rockWeeklyForWeek(wk){
@@ -605,10 +604,10 @@ function compute(){
   $('metrics').innerHTML=`
     <div class="metric"><div class="ml">Premium YOR</div><div class="mv ${eT}">${((eStock/eCap)*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} TEU</div></div>
     <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${((lStock/lCap)*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} TEU</div></div>
-    <div class="metric"><div class="ml">Today's MSL forecast</div><div class="mv" style="color:#1E5C99">${fmt(todayMsl.in||0)} / ${fmt(todayMsl.out||0)}</div><div class="ms">in / out TEU · ${dFull(today)}</div></div>
+    <div class="metric"><div class="ml">Today's MSL forecast</div><div class="mv" style="color:var(--navy2)">${fmt(todayMsl.in||0)} / ${fmt(todayMsl.out||0)}</div><div class="ms">in / out TEU · ${dFull(today)}</div></div>
     <div class="metric"><div class="ml">Premium net today</div><div class="mv ${currentNet>0?'green':'red'}">${signedNet(currentNet)}</div><div class="ms">out+repo−in</div></div>
     ${recCard('Premium → '+Math.round(t*100)+'% target',eRec)}
-    <div class="metric"><div class="ml">Revenue / ${days} days</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(totalRev)}</div><div class="ms">LOLO calculation only</div></div>`;
+    <div class="metric"><div class="ml">Revenue / ${days} days</div><div class="mv" style="color:#2E7D32">${fmtIDRs(totalRev)}</div><div class="ms">LOLO calculation only</div></div>`;
 
   let sc='ok', st=`<b>Premium projection updated</b> — using locked MSL forecast from Rock YOR plus editable another MSL and repositioning volume.`;
   if(currentNet<=0){sc='critical'; st=`<b>Premium stock is not draining today</b> — net is ${signedNet(currentNet)} TEU. Increase outbound/repositioning or reduce non-MSL inbound.`;}
@@ -641,9 +640,9 @@ function compute(){
   chart=new Chart($('chart'),{
     type:'line',
     data:{labels:cl,datasets:[
-      {label:'Empty YOR %',data:eY,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25},
-      {label:'Laden YOR %',data:lY,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25,borderDash:[5,3]},
-      {label:'Target',data:tgtLine,borderColor:'#3B6D11',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
+      {label:'Premium YOR %',data:eY,borderColor:'#13379E',backgroundColor:'rgba(19,55,158,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25},
+      {label:'Laden YOR %',data:lY,borderColor:'#E8201A',backgroundColor:'rgba(232,32,26,.06)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25,borderDash:[5,3]},
+      {label:'Target',data:tgtLine,borderColor:'#C99700',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(1)+'%'}}},
@@ -698,10 +697,10 @@ function computeWeekly(){
   $('weekMetrics').innerHTML=`
     <div class="metric"><div class="ml">Premium YOR</div><div class="mv ${eT}">${((eStock/eCap)*100).toFixed(1)}%</div><div class="ms">${fmt(eStock)} / ${fmt(eCap)} TEU</div></div>
     <div class="metric"><div class="ml">Laden YOR</div><div class="mv ${lT}">${((lStock/lCap)*100).toFixed(1)}%</div><div class="ms">${fmt(lStock)} / ${fmt(lCap)} TEU</div></div>
-    <div class="metric"><div class="ml">Current week MSL forecast</div><div class="mv" style="color:#1E5C99">${fmt(currentMsl.in||0)} / ${fmt(currentMsl.out||0)}</div><div class="ms">W${startWeek} in / out TEU</div></div>
+    <div class="metric"><div class="ml">Current week MSL forecast</div><div class="mv" style="color:var(--navy2)">${fmt(currentMsl.in||0)} / ${fmt(currentMsl.out||0)}</div><div class="ms">W${startWeek} in / out TEU</div></div>
     <div class="metric"><div class="ml">Premium net this week</div><div class="mv ${currentNet>0?'green':'red'}">${signedNet(currentNet)}</div><div class="ms">out+repo−in</div></div>
     <div class="metric"><div class="ml">Premium → ${Math.round(t*100)}% target</div><div class="mv ${eRec==null?'amber':'green'}">${eRec==null?'>'+weeks+'w':eRec+'w'}</div><div class="ms">${eRec==null?'not within horizon':'W'+(startWeek+eRec)}</div></div>
-    <div class="metric"><div class="ml">Revenue / ${weeks} weeks</div><div class="mv" style="color:#2A7D4F">${fmtIDRs(totalRev)}</div><div class="ms">LOLO calculation only</div></div>`;
+    <div class="metric"><div class="ml">Revenue / ${weeks} weeks</div><div class="mv" style="color:#2E7D32">${fmtIDRs(totalRev)}</div><div class="ms">LOLO calculation only</div></div>`;
 
   let sc='ok', st=`<b>Weekly projection updated</b> — MSL is aggregated from Rock YOR by week, year 2026, IDJKTSS.`;
   if(currentNet<=0){sc='critical'; st=`<b>Premium stock is not draining this week</b> — net is ${signedNet(currentNet)} TEU/week.`;}
@@ -732,9 +731,9 @@ function computeWeekly(){
   weekChart=new Chart($('weekChartCanvas'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Empty YOR %',data:eY,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25},
-      {label:'Laden YOR %',data:lY,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25,borderDash:[5,3]},
-      {label:'Target',data:tgtLine,borderColor:'#3B6D11',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
+      {label:'Premium YOR %',data:eY,borderColor:'#13379E',backgroundColor:'rgba(19,55,158,.07)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25},
+      {label:'Laden YOR %',data:lY,borderColor:'#E8201A',backgroundColor:'rgba(232,32,26,.06)',borderWidth:2.5,pointRadius:0,fill:true,tension:.25,borderDash:[5,3]},
+      {label:'Target',data:tgtLine,borderColor:'#C99700',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(1)+'%'}}},
@@ -752,7 +751,6 @@ function exportWeeklyCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='SBS_Weekly_YOR_BCP_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
-
 
 function csvSafe(v){
   const s=String(v==null?'':v);
@@ -778,12 +776,10 @@ function exportWeeklyConditionCSV(){
   downloadCSV('SBS_Weekly_Condition_Projection_'+new Date().toISOString().slice(0,10)+'.csv',lines);
 }
 
-// ─── IDEAL RECOMMENDATION OPTIMIZER ──────────────────────────
-// Published-to-web YOR Daily tab (File ▸ Share ▸ Publish to web)
+// Published-to-web YOR Daily tab
 const PUB_ID='2PACX-1vTXSizOmXVj-4S5tWz0pgihbSszoi8Aff-1EmYDrWgJXFKjiVoml2hjuDj0rtJfjEQFjeDYINHhONeO';
 const GID='46241366';
 
-// Robust CSV parser (handles quoted fields with embedded commas/quotes).
 function parseCSV(text){
   const rows=[]; let row=[], cur='', q=false;
   for(let i=0;i<text.length;i++){
@@ -802,10 +798,6 @@ function parseCSV(text){
   return rows;
 }
 
-// Reads the published-to-web CSV of YOR Daily. The /pub?output=csv endpoint
-// serves with permissive CORS, so a normal fetch works from GitHub Pages.
-// Columns: 1 Remark · 7 Empty in · 8 Empty out · 10 Empty stock
-//          12 Laden in · 13 Laden out · 14 Laden stock
 function fetchSheet(){
   const url=`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GID}&single=true&output=csv`;
   return fetch(url).then(r=>{ if(!r.ok) throw new Error('NET'); return r.text(); }).then(text=>{
@@ -829,214 +821,152 @@ function fetchSheet(){
   }).catch(err=>{ throw (err.message==='EMPTY')?err:new Error('NET'); });
 }
 
-// Effective weekday-equivalent drain days over a horizon (weekends count as wf).
-function effDrainDays(horizon,wf,start){
-  let n=0;
-  for(let i=0;i<horizon;i++){ n+=isWeekend(addDays(start,i))?wf:1; }
-  return n||1;
-}
+// ─── IDEAL STRATEGY (Rock YOR model) ─────────────────────────
+// MSL in/out are fixed forecast. Lever = repositioning (+ optional line-out / inbound cap).
+// Solve repositioning/day needed to hit target by the horizon.
+async function generateStrategy(){
+  const btn=$('stratBtn'), out=$('stratOut');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Solving…'; }
 
-// Solve ideal inbound/outbound for one type.
-// repo = fixed repositioning drain already committed (empties); 0 for laden.
-function solve(stock, cap, target, maxOut, forecastIn, horizon, wf, start, repo){
-  repo=repo||0;
-  const tgtStock=cap*target;
-  const excess=Math.max(0, stock-tgtStock);
-  if(excess===0) return {inbound:Math.round(forecastIn||maxOut*0.5), outbound:Math.round(forecastIn||0), net:repo, days:0, atTarget:true};
-  const effDays=effDrainDays(horizon,wf,start);
-  const neededNet=excess/effDays;              // weekday-equivalent net drain to hit target by horizon
-  let inbound, outbound;
-  // drain = outbound + repo - inbound ; want drain ≈ neededNet, accept max inbound
-  if((forecastIn!=null) && (forecastIn+neededNet-repo<=maxOut)){
-    inbound=forecastIn;
-    outbound=Math.min(maxOut, forecastIn+neededNet-repo);
-  } else {
-    outbound=maxOut;
-    inbound=Math.max(0, maxOut+repo-neededNet);
-    if(forecastIn!=null) inbound=Math.min(inbound, forecastIn);
-  }
-  const net=outbound+repo-inbound;
-  const days=net>0?simRecoveryDays(stock,tgtStock,net,wf,start):Infinity;
-  return {inbound:Math.round(inbound), outbound:Math.round(outbound), net:Math.round(net), days, atTarget:false};
-}
-
-async function generateIdeal(){
-  const btn=$('optBtn'), status=$('optStatus');
-  btn.disabled=true; btn.textContent='⏳ Calculating…';
-  status.className='opt-status'; status.textContent='Pulling latest data from YOR Daily…';
-
-  let fc={lastActual:null,fcEmptyInbound:null,fcLadenInbound:null}, source='current inputs', errCode='';
+  let source='current inputs';
   try{
-    fc=await fetchSheet();
+    const fc=await fetchSheet();
     if(fc.lastActual){
       $('eStock').value=Math.round(fc.lastActual.eStk);
       if(fc.lastActual.lStk!=null) $('lStock').value=Math.round(fc.lastActual.lStk);
       source='live YOR Daily data';
     }
-  }catch(e){
-    errCode=e.message||'NET';
-    status.className='opt-status err';
-  }
+  }catch(e){ /* keep current inputs */ }
 
-  const horizon=num('days');
-  const eCap=num('eCap'), lCap=num('lCap'), t=num('target')/100;
-  const eMaxOut=num('eMaxOut'), lMaxOut=num('lMaxOut');
   const eStock=num('eStock'), lStock=num('lStock');
-  const wf=Math.min(1,Math.max(0,num('wf')));
-  const eRepo=num('eRepo');
-  const today=new Date();today.setHours(0,0,0,0);
+  const eCap=num('eCap'), lCap=num('lCap'), t=num('target')/100;
+  const horizon=num('days');
+  const otherIn=num('eIn'), otherOut=num('eOut');
+  const lIn=num('lIn'), lOut=num('lOut');
+  const eRev=num('eRev'), lRev=num('lRev');
+  const today=simBaseDate();
 
-  const e=solve(eStock, eCap, t, eMaxOut, fc.fcEmptyInbound, horizon, wf, today, eRepo);
-  const l=solve(lStock, lCap, t, lMaxOut, fc.fcLadenInbound, horizon, wf, today, 0);
+  let mslInSum=0, mslOutSum=0;
+  for(let i=0;i<=horizon;i++){ const m=rockDailyForDate(addDays(today,i)); mslInSum+=Math.round(m.in||0); mslOutSum+=Math.round(m.out||0); }
+  const mslNet=mslOutSum-mslInSum;
+  const otherNet=otherOut-otherIn;
 
-  // apply to inputs
-  $('eIn').value=e.inbound; $('eOut').value=e.outbound;
-  $('lIn').value=l.inbound; $('lOut').value=l.outbound;
+  const eTarget=eCap*t, eExcess=Math.max(0,eStock-eTarget);
+  const lTarget=lCap*t, lExcess=Math.max(0,lStock-lTarget);
+
+  const D=Math.max(1,horizon);
+  let reqRepo=Math.ceil((eExcess - mslNet)/D - otherNet);
+  const recoversWithoutRepo = reqRepo<=0;
+  if(reqRepo<0) reqRepo=0;
+
+  let reqLOut=Math.ceil(lExcess/D + lIn);
+  const ladenOk = (lOut>=reqLOut) || lExcess===0;
+  const addlLOut = Math.max(0, reqLOut - lOut);
+
+  $('eRepo').value=reqRepo;
   compute();
 
-  const recDate=d=>d===Infinity?'beyond horizon':dFull(addDays(today,d));
+  const rows=window._rows||[];
+  const eHit=rows.find(r=>r.eyor<=t);
+  const eRecDay=eHit?eHit.i:null;
+  const eRecDate=eRecDay!=null?dFull(addDays(today,eRecDay)):null;
+  const eEndYor=rows.length?rows[rows.length-1].eyor:eStock/eCap;
+  const eEndStock=rows.length?rows[rows.length-1].eS:eStock;
 
-  $('idealOut').innerHTML=`
-    <div class="ideal-banner">
-      <div class="ihead">🎯 Ideal recommendation · target ${Math.round(t*100)}% YOR within ${horizon} days (weekends at ${Math.round(wf*100)}% rate) · source: ${source}</div>
-      <div class="ideal-grid">
-        <div class="ideal-cell e">
-          <h4>🔵 Empty (side loader) · priority</h4>
-          <div class="recline"><span>Accept inbound</span><b>${fmt(e.inbound)} TEU/day</b></div>
-          <div class="recline"><span>Push outbound</span><b>${fmt(e.outbound)} TEU/day</b></div>
-          <div class="recline"><span>Repositioning out</span><b>${fmt(num('eRepo'))} TEU/day</b></div>
-          <div class="recline"><span>Net drain (weekday)</span><b class="${e.net>0?'pos':'neg'}">${e.net>0?'−':'+'}${fmt(Math.abs(e.net))} TEU/day</b></div>
-          <div class="recline"><span>Recovery</span><b>${e.atTarget?'already at target':e.days+' days ('+recDate(e.days)+')'}</b></div>
-        </div>
-        <div class="ideal-cell l">
-          <h4>🟠 Laden (reach stacker)</h4>
-          <div class="recline"><span>Accept inbound</span><b>${fmt(l.inbound)} TEU/day</b></div>
-          <div class="recline"><span>Push outbound</span><b>${fmt(l.outbound)} TEU/day</b></div>
-          <div class="recline"><span>Net drain (weekday)</span><b class="${l.net>0?'pos':'neg'}">${l.net>0?'−':'+'}${fmt(Math.abs(l.net))} TEU/day</b></div>
-          <div class="recline"><span>Recovery</span><b>${l.atTarget?'already at target':l.days+' days ('+recDate(l.days)+')'}</b></div>
-        </div>
-      </div>
-      <div class="ideal-note">${buildNote(e,l,fc,horizon)}</div>
-    </div>`+buildReport(e,l,source,t,wf,today,fc);
-
-  btn.disabled=false; btn.textContent='🎯 Generate ideal recommendation';
-  if(source==='live YOR Daily data'){
-    status.className='opt-status ok';
-    status.textContent='✓ Synced with YOR Daily and optimised. Inputs above updated.';
-  }else{
-    status.className='opt-status err';
-    const msg={
-      'EMPTY':'Connected to the published sheet, but found no Actual/Forecast rows — check the YOR Daily tab is still the one published.'
-    }[errCode] || 'Couldn\'t reach the published sheet. Check it\'s still published (File ▸ Share ▸ Publish to web) and the link is active.';
-    status.textContent='⚠ '+msg+' Optimised from current inputs instead.';
-  }
-}
-
-function buildNote(e,l,fc,horizon){
-  const parts=[];
-  parts.push(`<b>Empties are the priority</b> — that's where the overstock is.`);
-  if(num('eRepo')>0) parts.push(`Plan includes <b>${fmt(num('eRepo'))} TEU/day repositioning</b> out of the depot.`);
-  if(fc.fcEmptyInbound!=null) parts.push(`Forecast empty inbound demand ≈ <b>${fmt(fc.fcEmptyInbound)}</b> TEU/day.`);
-  if(e.inbound < (fc.fcEmptyInbound||Infinity))
-    parts.push(`Empty inbound must be capped <b>below forecast demand</b> — even at max outbound + repositioning the yard can't absorb full volume within ${horizon} days.`);
-  else
-    parts.push(`Empty: full forecast inbound can be accepted while still recovering on time.`);
-  if(l.net<=0) parts.push(`<b>Laden warning:</b> at max reach-stacker outbound the laden yard still won't drain — review headcount.`);
-  parts.push(`Recovery dates already account for weekends running at ${Math.round(Math.min(1,Math.max(0,num('wf')))*100)}% throughput. Empty evacuation also depends on shipping-line vessel schedules, partly outside yard control.`);
-  return parts.join(' ');
-}
-
-// Build a report-ready block: recommended plan, current vs H+14, 14-day table.
-function buildReport(e,l,source,t,wf,today,fc){
-  const N=14;
-  const eCap=num('eCap'), lCap=num('lCap');
-  const eIn=num('eIn'),eOut=num('eOut'),eRepo=num('eRepo'),lIn=num('lIn'),lOut=num('lOut');
-  const eRev=num('eRev'), lRev=num('lRev');
-  const eStart=num('eStock'), lStart=num('lStock');
-  let eS=eStart, lS=lStart;
-  const rows=[];
-  for(let i=0;i<=N;i++){
-    const date=addDays(today,i), we=isWeekend(date), f=we?wf:1;
-    const eInD=Math.round(eIn*f),eOutD=Math.round(eOut*f),eRepoD=Math.round(eRepo*f);
-    const lInD=Math.round(lIn*f),lOutD=Math.round(lOut*f);
-    rows.push({i,date,we,eS,eyor:eS/eCap,eInD,eOutD,eRepoD,lS,lyor:lS/lCap,lInD,lOutD});
-    eS=Math.max(0,eS-(eOutD+eRepoD-eInD));
-    lS=Math.max(0,lS-(lOutD-lInD));
-  }
-  const eEnd=rows[N].eS, lEnd=rows[N].lS;
-  const eYs=eStart/eCap, eYe=eEnd/eCap, lYs=lStart/lCap, lYe=lEnd/lCap;
-
-  // Revenue under this plan over H+14 (LOLO on in+out throughput, seasonal)
-  // + revenue forgone vs forecast demand (each turned-away box = one full LOLO cycle)
-  let planRev=0; rows.forEach(r=>{ planRev+=(r.eInD+r.eOutD)*eRev+(r.lInD+r.lOutD)*lRev; });
-  const effDays=effDrainDays(N,wf,today);
-  const fcE=(fc&&fc.fcEmptyInbound!=null)?fc.fcEmptyInbound:eIn;
-  const fcL=(fc&&fc.fcLadenInbound!=null)?fc.fcLadenInbound:lIn;
-  const forgoneE=Math.max(0,fcE-eIn)*(2*eRev)*effDays;  // 2× = full in+out cycle
-  const forgoneL=Math.max(0,fcL-lIn)*(2*lRev)*effDays;
-  const forgone=forgoneE+forgoneL;
+  let planRev=0; rows.forEach(r=>{ planRev+=(r.mslIn+r.mslOut+r.otherIn+r.otherOut)*eRev+(r.lIn+r.lOut)*lRev; });
+  const repoLoloRev = reqRepo*eRev*D;
 
   const ppCell=(a,b)=>{ const d=(b-a)*100; const cls=d<0?'dn':d>0?'up':''; const ar=d<0?'↓':d>0?'↑':'–'; return `<td class="num ${cls}">${ar} ${Math.abs(d).toFixed(1)} pp</td>`; };
   const stCell=(a,b)=>{ const d=b-a; const cls=d<0?'dn':d>0?'up':''; const ar=d<0?'↓':d>0?'↑':'–'; return `<td class="num ${cls}">${ar} ${fmt(Math.abs(d))}</td>`; };
 
-  const tbl=rows.map(r=>`
-    <tr class="${r.i===0?'today':''} ${r.we?'wknd':''}">
-      <td>H+${r.i}</td><td>${dShort(r.date)}${r.we?' <span class="we">wk</span>':''}</td>
-      <td>${fmt(r.eS)}</td><td><span class="chip ${tier(r.eyor,t)}">${(r.eyor*100).toFixed(1)}%</span></td>
-      <td>${fmt(r.eInD)}</td><td>${fmt(r.eOutD)}${r.eRepoD>0?'<span class="rp">+'+fmt(r.eRepoD)+'</span>':''}</td>
-      <td>${fmt(r.lS)}</td><td><span class="chip ${tier(r.lyor,t)}">${(r.lyor*100).toFixed(1)}%</span></td>
-      <td>${fmt(r.lInD)}</td><td>${fmt(r.lOutD)}</td>
+  const recTbl=rows.map(r=>`
+    <tr class="${r.i===0?'today':''} ${isWeekend(r.date)?'wknd':''}">
+      <td>H+${r.i}</td><td>${dShort(r.date)}${isWeekend(r.date)?' <span class="we">wk</span>':''}</td>
+      <td>${fmt(r.eS)}</td><td>${fmt(r.mslIn)}</td><td>${fmt(r.mslOut)}</td><td>${fmt(r.eRepo)}</td>
+      <td><span class="chip ${tier(r.eyor,t)}">${(r.eyor*100).toFixed(1)}%</span></td>
+      <td class="${r.eNet>0?'pos':'neg'}">${signedNet(r.eNet)}</td>
     </tr>`).join('');
 
-  return `
+  const verdictE = recoversWithoutRepo
+    ? `The MSL forecast alone already drains Premium to ${Math.round(t*100)}% within ${horizon} days — <b>no extra repositioning required.</b>`
+    : (eRecDay!=null
+        ? `Adding <b>${fmt(reqRepo)} TEU/day repositioning</b> on top of the MSL forecast brings Premium to ${Math.round(t*100)}% by <b>${eRecDate}</b>.`
+        : `Even at <b>${fmt(reqRepo)} TEU/day repositioning</b>, Premium does not reach ${Math.round(t*100)}% within ${horizon} days — extend the horizon, push more line evacuation, or cap "another MSL" inbound.`);
+
+  out.innerHTML=`
+  <div class="ideal-banner">
+    <div class="ihead">🎯 Ideal strategy to ${Math.round(t*100)}% YOR · horizon H+${horizon} · source: ${source}</div>
+    <div class="ideal-grid">
+      <div class="ideal-cell e">
+        <h4>🔵 Premium (priority)</h4>
+        <div class="recline"><span>Current YOR</span><b>${((eStock/eCap)*100).toFixed(1)}%</b></div>
+        <div class="recline"><span>Over target by</span><b>${fmt(eExcess)} TEU</b></div>
+        <div class="recline"><span>MSL forecast net (H+${horizon})</span><b>${signedNet(-mslNet)} TEU</b></div>
+        <div class="recline"><span>Recommended repositioning</span><b>${fmt(reqRepo)} TEU/day</b></div>
+        <div class="recline"><span>Recovery</span><b>${eRecDay!=null?eRecDay+'d ('+eRecDate+')':'> '+horizon+'d'}</b></div>
+      </div>
+      <div class="ideal-cell l">
+        <h4>🟡 Laden</h4>
+        <div class="recline"><span>Current YOR</span><b>${((lStock/lCap)*100).toFixed(1)}%</b></div>
+        <div class="recline"><span>Over target by</span><b>${fmt(lExcess)} TEU</b></div>
+        <div class="recline"><span>Outbound now</span><b>${fmt(lOut)} TEU/day</b></div>
+        <div class="recline"><span>Outbound needed</span><b>${ladenOk?'sufficient':fmt(reqLOut)+' TEU/day'}</b></div>
+        <div class="recline"><span>Extra needed</span><b class="${addlLOut>0?'up':'dn'}">${addlLOut>0?'+'+fmt(addlLOut)+' TEU/day':'none'}</b></div>
+      </div>
+    </div>
+    <div class="ideal-note">${verdictE} ${addlLOut>0?`Laden needs <b>+${fmt(addlLOut)} TEU/day</b> reach-stacker outbound to clear its ${fmt(lExcess)} TEU surplus.`:`Laden is within reach of target at current outbound.`} MSL volume is fixed forecast (Rock YOR · IDJKTSS · 2026); repositioning and line evacuation are the controllable levers.</div>
+  </div>
+
   <div class="report-card" id="reportBlock">
     <div class="report-head">
-      <h3>SBS — YOR BCP Recommendation Report</h3>
-      <div class="meta">Generated ${dFull(today)} · Target ${Math.round(t*100)}% YOR · Horizon H+14 · Weekends at ${Math.round(wf*100)}% · Source: ${source}</div>
+      <h3>SBS — Premium YOR Recovery Strategy</h3>
+      <div class="meta">Generated ${dFull(today)} · Target ${Math.round(t*100)}% YOR · Horizon H+${horizon} · Source: ${source}</div>
     </div>
     <div class="report-body">
-      <div class="report-sub">Recommended daily plan</div>
+      <div class="report-sub">Recommended plan</div>
       <div class="plan-row">
-        <div class="plan-chip">🔵 Empty — accept <b>${fmt(eIn)}</b> in · push <b>${fmt(eOut)}</b> out${eRepo>0?` · reposition <b>${fmt(eRepo)}</b>`:''} TEU/day</div>
-        <div class="plan-chip">🟠 Laden — accept <b>${fmt(lIn)}</b> in · push <b>${fmt(lOut)}</b> out TEU/day</div>
+        <div class="plan-chip">🔵 Premium — hold MSL forecast · reposition <b>${fmt(reqRepo)}</b> TEU/day out${otherNet!==0?` · another MSL net ${signedNet(otherNet)}/day`:''}</div>
+        <div class="plan-chip">🟡 Laden — outbound <b>${fmt(Math.max(lOut,reqLOut))}</b> TEU/day</div>
       </div>
 
-      <div class="report-sub">Current vs projected (H+14)</div>
+      <div class="report-sub">Current vs projected (H+${horizon})</div>
       <table class="ba-table">
-        <tr><th>Metric</th><th style="text-align:right">Current · H+0</th><th style="text-align:right">Projected · H+14</th><th style="text-align:right">Change</th></tr>
-        <tr><td>Empty YOR</td><td class="num">${(eYs*100).toFixed(1)}%</td><td class="num">${(eYe*100).toFixed(1)}%</td>${ppCell(eYs,eYe)}</tr>
-        <tr><td>Empty stock (TEU)</td><td class="num">${fmt(eStart)}</td><td class="num">${fmt(eEnd)}</td>${stCell(eStart,eEnd)}</tr>
-        <tr><td>Laden YOR</td><td class="num">${(lYs*100).toFixed(1)}%</td><td class="num">${(lYe*100).toFixed(1)}%</td>${ppCell(lYs,lYe)}</tr>
-        <tr><td>Laden stock (TEU)</td><td class="num">${fmt(lStart)}</td><td class="num">${fmt(lEnd)}</td>${stCell(lStart,lEnd)}</tr>
+        <tr><th>Metric</th><th style="text-align:right">Current</th><th style="text-align:right">Projected H+${horizon}</th><th style="text-align:right">Change</th></tr>
+        <tr><td>Premium YOR</td><td class="num">${((eStock/eCap)*100).toFixed(1)}%</td><td class="num">${(eEndYor*100).toFixed(1)}%</td>${ppCell(eStock/eCap,eEndYor)}</tr>
+        <tr><td>Premium stock (TEU)</td><td class="num">${fmt(eStock)}</td><td class="num">${fmt(eEndStock)}</td>${stCell(eStock,eEndStock)}</tr>
       </table>
 
-      <div class="report-sub">Revenue impact (H+14)</div>
+      <div class="report-sub">Forecast &amp; lever breakdown (H+${horizon})</div>
+      <table class="ba-table">
+        <tr><th>Item</th><th style="text-align:right">TEU</th></tr>
+        <tr><td>MSL inbound (forecast, fixed)</td><td class="num">${fmt(mslInSum)}</td></tr>
+        <tr><td>MSL outbound (forecast, fixed)</td><td class="num">${fmt(mslOutSum)}</td></tr>
+        <tr><td>MSL net contribution</td><td class="num ${mslNet>=0?'dn':'up'}">${signedNet(-mslNet)}</td></tr>
+        <tr><td>Repositioning out (recommended)</td><td class="num">${fmt(reqRepo*D)}</td></tr>
+        <tr><td>Gap to close vs target</td><td class="num">${fmt(eExcess)}</td></tr>
+      </table>
+
+      <div class="report-sub">Revenue impact (LOLO, H+${horizon})</div>
       <table class="ba-table">
         <tr><th>Item</th><th style="text-align:right">Amount</th></tr>
-        <tr><td>Revenue under this plan (14 days)</td><td class="num">${fmtIDRs(planRev)}</td></tr>
-        <tr><td>Revenue forgone vs forecast demand</td><td class="num up">${forgone>0?'−'+fmtIDRs(forgone):'Rp 0'}</td></tr>
-        <tr><td>&nbsp;&nbsp;↳ from capped empty inbound</td><td class="num">${forgoneE>0?fmtIDRs(forgoneE):'—'}</td></tr>
-        <tr><td>&nbsp;&nbsp;↳ from capped laden inbound</td><td class="num">${forgoneL>0?fmtIDRs(forgoneL):'—'}</td></tr>
+        <tr><td>Throughput LOLO revenue under plan</td><td class="num">${fmtIDRs(planRev)}</td></tr>
+        <tr><td>↳ incl. repositioning lifts (${fmt(reqRepo*D)} moves)</td><td class="num">${fmtIDRs(repoLoloRev)}</td></tr>
       </table>
-      <div class="dash-note" style="margin:0 0 4px">Revenue forgone = empty inbound turned away to drain the yard, each box valued at a full LOLO in+out cycle (≈ Rp ${fmt(2*eRev)} empty / Rp ${fmt(2*lRev)} laden). This is the <b>commercial cost of the BCP</b> — weigh it against the overstock and overflow risk of staying above target.</div>
+      <div class="dash-note" style="margin:0 0 4px">Repositioning generates LOLO on the out-lift, so draining via repositioning <b>adds</b> revenue rather than forgoing it — unlike capping inbound. The constraint is depot/line capacity to absorb evacuated empties, not revenue.</div>
 
-      <div class="report-sub">14-day projection (H+0 → H+14)</div>
+      <div class="report-sub">Daily plan (H+0 → H+${horizon})</div>
       <div class="table-scroll">
         <table>
-          <thead><tr>
-            <th>Day</th><th>Date</th>
-            <th>Empty stock</th><th>Empty YOR%</th><th>Empty in</th><th>Empty out</th>
-            <th>Laden stock</th><th>Laden YOR%</th><th>Laden in</th><th>Laden out</th>
-          </tr></thead>
-          <tbody>${tbl}</tbody>
+          <thead><tr><th>Day</th><th>Date</th><th>Premium stock</th><th>MSL IN</th><th>MSL OUT</th><th>REPO</th><th>Premium YOR%</th><th>Net (E)</th></tr></thead>
+          <tbody>${recTbl}</tbody>
         </table>
       </div>
 
-      <div class="report-actions">
-        <button class="btn" onclick="printReport()">📄 Print / PDF this report</button>
-      </div>
+      <div class="report-actions"><button class="btn" onclick="printReport()">📄 Print / PDF this report</button></div>
     </div>
   </div>`;
+
+  if(btn){ btn.disabled=false; btn.textContent='🎯 Generate Ideal Strategy'; }
 }
 
 function printReport(){
@@ -1044,7 +974,7 @@ function printReport(){
   if(!node) return;
   const w=window.open('','_blank');
   if(!w){ alert('Please allow pop-ups to print the report.'); return; }
-  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>SBS YOR BCP Report</title><style>'+REPORT_PRINT_CSS+'</style></head><body>'+node.innerHTML+'</body></html>');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>SBS YOR Strategy Report</title><style>'+REPORT_PRINT_CSS+'</style></head><body>'+node.innerHTML+'</body></html>');
   w.document.close(); w.focus();
   setTimeout(()=>{ w.print(); },350);
 }
@@ -1052,30 +982,30 @@ function printReport(){
 const REPORT_PRINT_CSS=`
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1A2433;padding:24px;}
-.report-head{background:#0A2342;color:#fff;padding:14px 18px;border-bottom:3px solid #D4AF37;border-radius:8px 8px 0 0;}
+.report-head{background:#0A2A8C;color:#fff;padding:14px 18px;border-bottom:3px solid #F5C518;border-radius:8px 8px 0 0;}
 .report-head h3{font-size:16px;margin-bottom:3px;}
-.report-head .meta{font-size:11px;color:#A9BCD4;}
+.report-head .meta{font-size:11px;color:#BCC8EE;}
 .report-body{padding:18px 4px;}
-.report-sub{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0A2342;margin:16px 0 9px;}
+.report-sub{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0A2A8C;margin:16px 0 9px;}
 .report-sub:first-child{margin-top:0;}
 .plan-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
 .plan-chip{background:#F4F6F9;border:1px solid #E2E6EB;border-radius:8px;padding:9px 13px;font-size:12.5px;}
-.plan-chip b{color:#0A2342;}
+.plan-chip b{color:#0A2A8C;}
 table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:4px;}
 .ba-table{font-size:13px;}
-th{background:#1A3A5C;color:#fff;padding:8px 10px;text-align:center;border:1px solid #0A2342;font-size:10.5px;}
+th{background:#13379E;color:#fff;padding:8px 10px;text-align:center;border:1px solid #0A2A8C;font-size:10.5px;}
 .ba-table th{background:#F4F6F9;color:#6B7585;text-align:left;border:1px solid #E2E6EB;}
 td{padding:7px 10px;text-align:center;border:1px solid #E2E6EB;}
 .ba-table td{text-align:left;}
 .ba-table td:first-child{color:#6B7585;}
 .num{text-align:right!important;font-weight:700;font-variant-numeric:tabular-nums;}
-.dn{color:#3B6D11;} .up{color:#A32D2D;}
-tr.today td{background:#EBF5FB;font-weight:600;}
+.dn{color:#2E7D32;} .up{color:#E8201A;}
+tr.today td{background:#EAEEFB;font-weight:600;}
 tr.wknd td{background:#FAFAF7;}
 .chip{display:inline-block;padding:2px 7px;border-radius:5px;font-weight:700;font-size:10.5px;}
-.chip.red{background:#FCEBEB;color:#A32D2D;} .chip.amber{background:#FAEEDA;color:#854F0B;} .chip.green{background:#EAF3DE;color:#3B6D11;}
+.chip.red{background:#FCE9E8;color:#E8201A;} .chip.amber{background:#FCF1D6;color:#9A6B00;} .chip.green{background:#E8F2E1;color:#2E7D32;}
 .we{font-size:9px;color:#6B7585;background:#EDEFF2;padding:1px 4px;border-radius:4px;margin-left:4px;}
-.rp{font-size:10px;color:#1E5C99;margin-left:3px;}
+.dash-note{font-size:12px;color:#1A2433;background:#F4F6F9;border-radius:8px;padding:11px 14px;margin-top:8px;line-height:1.5;}
 .report-actions,.btn{display:none!important;}
 @page{margin:14mm;}
 `;
@@ -1106,14 +1036,11 @@ function switchPage(name){
 }
 
 // ─── DAILY DASHBOARD ─────────────────────────────────────────
-// Reads the full Actual+Forecast series from the published YOR Daily CSV.
-// Uses the sheet's own YOR columns (L=empty index 11, P=laden index 15).
 function fetchSeries(){
   const url=`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${GID}&single=true&output=csv`;
   return fetch(url).then(r=>{ if(!r.ok) throw new Error('NET'); return r.text(); }).then(text=>{
     const rows=parseCSV(text);
     const numv=(s)=>{ if(s==null) return null; const n=Number(String(s).replace(/,/g,'').trim()); return isFinite(n)?n:null; };
-    // YOR cells may be exported as "125.3%" (percent) or "1.253" (decimal). Handle both.
     const yorv=(s)=>{ if(s==null) return null; s=String(s).trim(); if(!s) return null;
       const pct=s.includes('%'); const n=Number(s.replace(/[%,]/g,'').trim());
       if(!isFinite(n)) return null; return pct ? n/100 : n; };
@@ -1134,7 +1061,6 @@ function fetchSeries(){
 }
 
 function fmtDate(raw){
-  // Try to parse common formats; fall back to raw string.
   const d=new Date(raw);
   if(!isNaN(d.getTime())) return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   return raw;
@@ -1162,33 +1088,27 @@ async function loadDashboard(){
 
 function renderDashboard(series){
   const t=num('target')/100||0.8;
-  const eCapF=num('eCap')||12980, lCapF=num('lCap')||1300;
-  // If the sheet's YOR column is missing, derive it from stock ÷ capacity.
+  const eCapF=num('eCap')||12988, lCapF=num('lCap')||1300;
   series.forEach(r=>{
     if(r.eYor==null && r.eStk!=null) r.eYor=r.eStk/eCapF;
     if(r.lYor==null && r.lStk!=null) r.lYor=r.lStk/lCapF;
   });
-  // latest actual = baseline (H+0)
   let baseIdx=-1;
   for(let i=0;i<series.length;i++){ if(series[i].remark==='actual') baseIdx=i; }
   if(baseIdx<0) baseIdx=0;
-  const window14=series.slice(baseIdx, baseIdx+15); // H+0..H+14
+  const window14=series.slice(baseIdx, baseIdx+15);
   const base=series[baseIdx];
 
-  // ---- Current status ----
-  const combined=(base.eStk+base.lStk)/((base.eYor?base.eStk/base.eYor:12980)+(base.lYor?base.lStk/base.lYor:1300));
   const stat=(label,v)=>{ const tr=yorTier(v,t); return `<div class="metric"><div class="ml">${label}</div><div class="mv big ${tr}">${yorPct(v)}</div><div class="ms">${tr==='red'?'Critical · over capacity':tr==='amber'?'Warning · above target':'Normal'}</div></div>`; };
   $('dashStatus').innerHTML =
     stat('Empty YOR', base.eYor) +
     stat('Laden YOR', base.lYor) +
     `<div class="metric"><div class="ml">Baseline date</div><div class="mv">${fmtDate(base.dateRaw)}</div><div class="ms">latest actual reading</div></div>`;
 
-  // ---- 14-day outlook ----
   const fcRows=window14.filter(r=>r.remark==='forecast');
   let peakE=base.eYor||0, peakEdate=base.dateRaw;
   window14.forEach(r=>{ if(r.eYor!=null && r.eYor>peakE){ peakE=r.eYor; peakEdate=r.dateRaw; } });
   const endRow=window14[window14.length-1]||base;
-  // when does empty forecast fall below target within window?
   let backRow=window14.find(r=>r.eYor!=null && r.eYor<t);
   const verdict = backRow ? ('Returns to target ~'+fmtDate(backRow.dateRaw)) : 'Stays above target through H+14';
   const out=(label,val,sub,cls)=>`<div class="metric"><div class="ml">${label}</div><div class="mv ${cls||''}">${val}</div><div class="ms">${sub}</div></div>`;
@@ -1198,7 +1118,6 @@ function renderDashboard(series){
     out('Laden YOR at H+14', yorPct(endRow.lYor), fmtDate(endRow.dateRaw), yorTier(endRow.lYor,t)) +
     out('Empty outlook', backRow?'Improving':'Persistent', verdict, backRow?'green':'red');
 
-  // ---- Chart ----
   const labels=window14.map(r=>fmtDate(r.dateRaw));
   const eY=window14.map(r=>r.eYor!=null?+(r.eYor*100).toFixed(1):null);
   const lY=window14.map(r=>r.lYor!=null?+(r.lYor*100).toFixed(1):null);
@@ -1207,9 +1126,9 @@ function renderDashboard(series){
   dashChart=new Chart($('dashChart'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'Empty YOR %',data:eY,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25},
-      {label:'Laden YOR %',data:lY,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,.07)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25,borderDash:[5,3]},
-      {label:'Target',data:labels.map(()=>num('target')||80),borderColor:'#3B6D11',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
+      {label:'Premium YOR %',data:eY,borderColor:'#13379E',backgroundColor:'rgba(19,55,158,.07)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25},
+      {label:'Laden YOR %',data:lY,borderColor:'#E8201A',backgroundColor:'rgba(232,32,26,.06)',borderWidth:2.5,pointRadius:2,fill:true,tension:.25,borderDash:[5,3]},
+      {label:'Target',data:labels.map(()=>num('target')||80),borderColor:'#C99700',borderWidth:1.5,pointRadius:0,fill:false,borderDash:[6,4]}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,callbacks:{
@@ -1220,7 +1139,6 @@ function renderDashboard(series){
            ticks:{callback:function(val,idx){ return (splitIdx>=0&&idx===splitIdx)?'▼ '+labels[idx]:labels[idx]; }}}}}
   });
 
-  // ---- Table ----
   $('dashBody').innerHTML=window14.map((r,i)=>`
     <tr class="${i===0?'today':''}">
       <td>H+${i}</td><td>${fmtDate(r.dateRaw)}</td>
@@ -1235,7 +1153,6 @@ function renderDashboard(series){
 
   $('dashNote').innerHTML=`This is the yard's <b>own forecast</b> straight from YOR Daily (▼ marks where actuals end and forecast begins) — what's projected to happen on the current trajectory. To model a <b>recovery plan</b> instead, use the <b>YOR Simulation</b> or <b>Weekly YOR Simulation</b> tab and generate the projection.`;
 }
-
 
 function toRockNumber(v){
   if(v==null || v==='') return 0;
@@ -1277,7 +1194,6 @@ function findRockSheetRows(wb){
       return {sheetName, rows:rows.slice(headerIndex+1), idx};
     }
   }
-  // Fallback to the first worksheet with fixed columns A, C, D, F, N, O.
   const ws=wb.Sheets[wb.SheetNames[0]];
   return {sheetName:wb.SheetNames[0], rows:XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}), idx:{week:0,year:2,date:3,geo:5,inbound:13,outbound:14}};
 }
